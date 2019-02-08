@@ -24,6 +24,7 @@ import (
 
 	"github.com/kubectl-dispatcher/pkg/client"
 	"github.com/kubectl-dispatcher/pkg/filepath"
+	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -101,24 +102,15 @@ func initFlags(kubeConfigFlags *genericclioptions.ConfigFlags) {
 	pflag.CommandLine.SetNormalizeFunc(WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine) // Combine the flag and pflag FlagSets
 	kubeConfigFlags.AddFlags(pflag.CommandLine)      // Binds kubeConfigFlags to the pflag FlagSet
-	args := os.Args[1:]
 	// Remove help flags, since these are special-cased in pflag.Parse,
 	// and handled in the dispatcher instead of passed to versioned binary.
-	args = removeArg(args, "-h")
-	args = removeArg(args, "--help")
+	args := os.Args[1:]
+	args = util.RemoveAllElements(args, "-h")
+	args = util.RemoveAllElements(args, "--help")
 	pflag.CommandLine.Parse(args) // Fills in flags in FlagSet from args
 	pflag.VisitAll(func(flag *pflag.Flag) {
 		klog.Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
-}
-
-func removeArg(s []string, r string) []string {
-	for i, v := range s {
-		if v == r {
-			s = append(s[:i], s[i+1:]...)
-		}
-	}
-	return s
 }
 
 // WordSepNormalizeFunc changes all flags that contain "_" separators
