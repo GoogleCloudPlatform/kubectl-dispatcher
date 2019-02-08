@@ -25,6 +25,7 @@ import (
 	"github.com/kubectl-dispatcher/pkg/client"
 	"github.com/kubectl-dispatcher/pkg/filepath"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog"
 
@@ -35,14 +36,18 @@ import (
 // The kubectl dispatcher is a wrapper which retrieves the server version from
 // a cluster, and executes the appropriate kubectl version. For example, if a
 // user is configured to talk to their Kubernetes cluster that is version
-// 1.10.3-gke, then this binary will execute "kubectl-1.10" (in the same
+// 1.10.3-gke, then this binary will execute "kubectl.1.10" (in the same
 // directory as this binary) passing the arguments and environment of
 // this binary.
 //
 // IMPORTANT: Versioned kubectl binaries that are dispatched to, MUST be in
 // the same directory as this dispatcher binary. Versioned kubectl binaries
-// MUST follow the naming convention: kubectl-<major>.<minor>. Example:
-// kubectl-1.12.
+// MUST follow the naming convention: kubectl.<major>.<minor>. Example:
+// kubectl.1.12.
+//
+// NOTE: versioned kubectl filenames must NOT start with "kubectl-", since
+// that is reserved for plugins. Therefore, we prefix versioned kubectl
+// filenames with "kubectl.". Example: "kubectl.1.12"
 func main() {
 	// Create a defensive copy of the args and the environment.
 	args := make([]string, len(os.Args))
@@ -52,56 +57,38 @@ func main() {
 
 	// Initialize the flags: logs and kubeConfigFlags
 	defer klog.Flush()
-	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
+	usePersistentConfig := true
+	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
 	initFlags(kubeConfigFlags)
 
-	// Using the kube config flags values, create the discovery client and contact
-	// the api server to retrieve the version.
-	klog.Info("Creating discovery client")
-	discoveryClient, err := kubeConfigFlags.ToDiscoveryClient()
-	if err != nil {
-		klog.Errorf("kubectl dispatcher error: unable to create discovery client (%v)", err)
-		os.Exit(1)
+	// Fetch the server version; nil implies using the default version of kubectl.
+	serverVersion := getServerVersion(kubeConfigFlags)
+	if serverVersion != nil {
+		klog.Infof("Server Version: %s", serverVersion.GitVersion)
+	} else {
+		klog.Infof("Nil server version; dispatching default kubectl")
 	}
-	serverVersionClient, err := client.NewServerVersionClient(discoveryClient)
-	if err != nil {
-		klog.Errorf("kubectl dispatcher error: error creating server version client (%v)", err)
-		os.Exit(1)
-	}
-	serverVersion, err := serverVersionClient.ServerVersion()
-	if err != nil {
-		klog.Errorf("kubectl dispatcher error: error retrieving server version (%v)", err)
-		os.Exit(1)
-	}
-	klog.Infof("Server Version: %s", serverVersion.GitVersion)
 
 	// Create the full versioned kubectl file path from the server version, and
-	// the current directory of this dispatcher binary.
+	// the current directory of this dispatcher binary. NOTE: A nil server version
+	// maps to the default version of kubectl (kubectl.default).
 	// Example:
-	//   serverVersion -> /home/seans/go/bin/kubectl-1.11
-	klog.Info("Creating versioned kubectl binary full file path")
-	filepathBuilder, err := filepath.NewFilepathBuilder(serverVersion, &filepath.ExeDirGetter{})
-	if err != nil {
-		klog.Errorf("kubectl dispatcher error: error creating filepath builder (%v)", err)
-	}
-	kubectlFilepath, err := filepathBuilder.VersionedFilePath()
-	if err != nil {
-		klog.Errorf("kubectl dispatcher error: error creating kubectl binary file path: (%v)", err)
-		os.Exit(1)
-	}
+	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
+	//   nil -> /home/seans/go/bin/kubectl.default
+	filepathBuilder := filepath.NewFilepathBuilder(serverVersion, &filepath.ExeDirGetter{})
+	kubectlFilepath := filepathBuilder.VersionedFilePath()
 	if _, err := os.Stat(kubectlFilepath); err != nil {
-		klog.Errorf("kubectl dispatcher error: unable to find kubectl executable (%s)", kubectlFilepath)
+		klog.Errorf("kubectl dispatcher error: unable to locate kubectl executable (%s)", kubectlFilepath)
 		os.Exit(1)
 	}
 
-	// Dispatch to the versioned kubectl binary.
+	// Dispatch to the versioned kubectl binary. This overwrites the current process
+	// (by calling execve(2) system call), and it does not return on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
-	execErr := syscall.Exec(kubectlFilepath, args, env)
-	if execErr != nil {
-		klog.Errorf("kubectl dispatcher error: error executing kubectl binary (%v)", execErr)
-		os.Exit(1)
+	err := syscall.Exec(kubectlFilepath, args, env)
+	if err != nil {
+		klog.Errorf("kubectl dispatcher error: problem with Exec: (%v)", err)
 	}
-	klog.Info("kubectl dispatcher complete")
 }
 
 // Sets up the log flags and kubeConfigFlags. This dispatcher will pass most flags
@@ -114,10 +101,24 @@ func initFlags(kubeConfigFlags *genericclioptions.ConfigFlags) {
 	pflag.CommandLine.SetNormalizeFunc(WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine) // Combine the flag and pflag FlagSets
 	kubeConfigFlags.AddFlags(pflag.CommandLine)      // Binds kubeConfigFlags to the pflag FlagSet
-	pflag.CommandLine.Parse(os.Args[1:])             // Fills in flags in FlagSet from args
+	args := os.Args[1:]
+	// Remove help flags, since these are special-cased in pflag.Parse,
+	// and handled in the dispatcher instead of passed to versioned binary.
+	args = removeArg(args, "-h")
+	args = removeArg(args, "--help")
+	pflag.CommandLine.Parse(args) // Fills in flags in FlagSet from args
 	pflag.VisitAll(func(flag *pflag.Flag) {
 		klog.Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
+}
+
+func removeArg(s []string, r string) []string {
+	for i, v := range s {
+		if v == r {
+			s = append(s[:i], s[i+1:]...)
+		}
+	}
+	return s
 }
 
 // WordSepNormalizeFunc changes all flags that contain "_" separators
@@ -127,4 +128,28 @@ func WordSepNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		return pflag.NormalizedName(strings.Replace(name, "_", "-", -1))
 	}
 	return pflag.NormalizedName(name)
+}
+
+// getServerVersion returns the server version of the Kubernetes cluster, or
+// nil if there is an error.
+func getServerVersion(kubeConfigFlags *genericclioptions.ConfigFlags) *version.Info {
+	// Using the kube config flags values, create the discovery client and contact
+	// the api server to retrieve the version.
+	klog.Info("Creating discovery client")
+	discoveryClient, err := kubeConfigFlags.ToDiscoveryClient()
+	if err != nil {
+		klog.Infof("kubectl dispatcher error: unable to create discovery client (%v)", err)
+		return nil
+	}
+	serverVersionClient, err := client.NewServerVersionClient(discoveryClient)
+	if err != nil {
+		klog.Infof("kubectl dispatcher error: error creating server version client (%v)", err)
+		return nil
+	}
+	serverVersion, err := serverVersionClient.ServerVersion()
+	if err != nil {
+		klog.Infof("kubectl dispatcher error: error retrieving server version (%v)", err)
+		return nil
+	}
+	return serverVersion
 }
