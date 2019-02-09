@@ -62,29 +62,34 @@ func main() {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
 	initFlags(kubeConfigFlags)
 
-	// Fetch the server version; nil implies using the default version of kubectl.
-	serverVersion := getServerVersion(kubeConfigFlags)
-	if serverVersion != nil {
-		klog.Infof("Server Version: %s", serverVersion.GitVersion)
-	} else {
-		klog.Infof("Nil server version; dispatching default kubectl")
-	}
+	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{})
+	kubectlDefaultFilepath := filepathBuilder.DefaultFilePath()
 
-	// Create the full versioned kubectl file path from the server version, and
-	// the current directory of this dispatcher binary. NOTE: A nil server version
-	// maps to the default version of kubectl (kubectl.default).
+	// Fetch the server version; nil implies using the default version of kubectl.
+	// Then create the full versioned kubectl file path from the server version, and
+	// the current directory of this dispatcher binary.
 	// Example:
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
-	//   nil -> /home/seans/go/bin/kubectl.default
-	filepathBuilder := filepath.NewFilepathBuilder(serverVersion, &filepath.ExeDirGetter{})
-	kubectlFilepath := filepathBuilder.VersionedFilePath()
-	if _, err := os.Stat(kubectlFilepath); err != nil {
-		klog.Errorf("kubectl dispatcher error: unable to locate kubectl executable (%s)", kubectlFilepath)
-		os.Exit(1)
+	kubectlFilepath := kubectlDefaultFilepath
+	if serverVersion := getServerVersion(kubeConfigFlags); serverVersion != nil {
+		klog.Infof("Server Version: %s", serverVersion.GitVersion)
+		kubectlFilepath = filepathBuilder.VersionedFilePath(serverVersion)
+	}
+	// Fall back to default kubectl binary if versioned kubectl is bad.
+	if !validateFilepath(kubectlFilepath) {
+		klog.Infof("Invalid kubectl filepath: %s", kubectlFilepath)
+		kubectlFilepath = kubectlDefaultFilepath
+		// If default kubectl is also bad then fail. This is should be the
+		// only error the dispatcher surfaces.
+		if !validateFilepath(kubectlFilepath) {
+			klog.Errorf("Invalid default kubectl filepath: %s", kubectlFilepath)
+			os.Exit(1)
+		}
 	}
 
-	// Dispatch to the versioned kubectl binary. This overwrites the current process
-	// (by calling execve(2) system call), and it does not return on success.
+	// Delegate to the versioned or default kubectl binary. This overwrites the
+	// current process (by calling execve(2) system call), and it does not return
+	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	err := syscall.Exec(kubectlFilepath, args, env)
 	if err != nil {
@@ -144,4 +149,12 @@ func getServerVersion(kubeConfigFlags *genericclioptions.ConfigFlags) *version.I
 		return nil
 	}
 	return serverVersion
+}
+
+func validateFilepath(filepath string) bool {
+	isValid := true
+	if _, err := os.Stat(kubectlFilepath); err != nil {
+		isValid = false
+	}
+	return valid
 }

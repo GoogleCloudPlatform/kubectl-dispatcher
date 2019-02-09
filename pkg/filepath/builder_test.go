@@ -141,7 +141,7 @@ func TestVersionedFilepath(t *testing.T) {
 			dirGetter: nil,
 			filePath:  "kubectl.1.9",
 		},
-		// Error in retrieving current directory defaults to no directory
+		// // Error in retrieving current directory defaults to no directory
 		{
 			version:   createServerVersion("1", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("Forced error")},
@@ -149,8 +149,8 @@ func TestVersionedFilepath(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		builder := NewFilepathBuilder(test.version, test.dirGetter)
-		filePath := builder.VersionedFilePath()
+		builder := NewFilepathBuilder(test.dirGetter)
+		filePath := builder.VersionedFilePath(test.version)
 		if filePath != test.filePath {
 			t.Errorf("Expected versioned file path (%s), got (%s)", test.filePath, filePath)
 		}

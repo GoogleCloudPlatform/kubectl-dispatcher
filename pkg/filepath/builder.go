@@ -53,32 +53,49 @@ func (e *ExeDirGetter) CurrentDirectory() (string, error) {
 // FilepathBuilder encapsulates the data and functionality to build the full
 // versioned kubectl filepath from the server version.
 type FilepathBuilder struct {
-	version   *version.Info
 	dirGetter DirectoryGetter
 }
 
 // NewFilepathBuilder encapsulates information necessary to build the full
 // file path of the versioned kubectl binary to execute. NOTE: A nil
 // ServerVersion is acceptable, and it maps to the default kubectl version.
-func NewFilepathBuilder(serverVersion *version.Info, dirGetter DirectoryGetter) *FilepathBuilder {
+func NewFilepathBuilder(dirGetter DirectoryGetter) *FilepathBuilder {
 	return &FilepathBuilder{
-		version:   serverVersion,
 		dirGetter: dirGetter,
 	}
 }
 
 const kubectlDefaultName = "kubectl.default"
 
+func (c *FilepathBuilder) currentDirectory() string {
+	currentDirectory := "" // Use empty directory upon error.
+	if c.dirGetter != nil {
+		dir, err := c.dirGetter.CurrentDirectory()
+		if err != nil {
+			klog.Infof("kubectl dispatcher current directory error: (%v)", err)
+		} else {
+			currentDirectory = dir
+		}
+	} else {
+		klog.Infof("directory getter is nil; using empty current directory")
+	}
+	return currentDirectory
+}
+
+func (c *FilepathBuilder) DefaultFilePath() string {
+	return filepath.Join(c.currentDirectory(), kubectlDefaultName)
+}
+
 // VersionedFilePath returns the full absolute file path to the
 // versioned kubectl binary to dispatch to. On error, the full path to the
 // default kubectl binary is returned.
-func (c *FilepathBuilder) VersionedFilePath() string {
+func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string {
 	// Use default filename upon error.
 	kubectlFilename := kubectlDefaultName
-	if c.version != nil {
-		majorVersion, err := c.getMajorVersion()
+	if serverVersion != nil {
+		majorVersion, err := getMajorVersion(serverVersion)
 		if err == nil {
-			minorVersion, err := c.getMinorVersion()
+			minorVersion, err := getMinorVersion(serverVersion)
 			if err == nil {
 				// Example: major: "1", minor: "12" -> "kubectl.1.12"
 				kubectlFilename, err = createKubectlBinaryFilename(majorVersion, minorVersion)
@@ -88,24 +105,17 @@ func (c *FilepathBuilder) VersionedFilePath() string {
 		} else {
 			klog.Infof("kubectl dispatching default binary: (%v)", err)
 		}
-	}
-	// Use empty directory upon error.
-	currentDirectory := ""
-	var err error
-	if c.dirGetter != nil {
-		// Returns empty string on error.
-		currentDirectory, err = c.dirGetter.CurrentDirectory()
-		if err != nil {
-			klog.Infof("kubectl dispatcher current directory error: (%v)", err)
-		}
 	} else {
-		klog.Infof("directory getter is nil; using empty current directory")
+		klog.Infof("kubectl dispatching default binary: server version is nil")
 	}
-	return filepath.Join(currentDirectory, kubectlFilename)
+	return filepath.Join(c.currentDirectory(), kubectlFilename)
 }
 
-func (c *FilepathBuilder) getMajorVersion() (string, error) {
-	majorStr, err := normalizeVersionStr(c.version.Major)
+func getMajorVersion(serverVersion *version.Info) (string, error) {
+	if serverVersion == nil {
+		return "", fmt.Errorf("server version is nil")
+	}
+	majorStr, err := normalizeVersionStr(serverVersion.Major)
 	if err != nil {
 		return "", err
 	}
@@ -115,8 +125,11 @@ func (c *FilepathBuilder) getMajorVersion() (string, error) {
 	return majorStr, nil
 }
 
-func (c *FilepathBuilder) getMinorVersion() (string, error) {
-	minorStr, err := normalizeVersionStr(c.version.Minor)
+func getMinorVersion(serverVersion *version.Info) (string, error) {
+	if serverVersion == nil {
+		return "", fmt.Errorf("server version is nil")
+	}
+	minorStr, err := normalizeVersionStr(serverVersion.Minor)
 	if err != nil {
 		return "", err
 	}
