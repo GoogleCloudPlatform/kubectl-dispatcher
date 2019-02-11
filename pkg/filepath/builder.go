@@ -54,14 +54,17 @@ func (e *ExeDirGetter) CurrentDirectory() (string, error) {
 // versioned kubectl filepath from the server version.
 type FilepathBuilder struct {
 	dirGetter DirectoryGetter
+	// Function to call to check if a file exists.
+	filestatFunc func(string) (os.FileInfo, error)
 }
 
 // NewFilepathBuilder encapsulates information necessary to build the full
 // file path of the versioned kubectl binary to execute. NOTE: A nil
 // ServerVersion is acceptable, and it maps to the default kubectl version.
-func NewFilepathBuilder(dirGetter DirectoryGetter) *FilepathBuilder {
+func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.FileInfo, error)) *FilepathBuilder {
 	return &FilepathBuilder{
-		dirGetter: dirGetter,
+		dirGetter:    dirGetter,
+		filestatFunc: filestat,
 	}
 }
 
@@ -109,6 +112,13 @@ func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string 
 		klog.Infof("kubectl dispatching default binary: server version is nil")
 	}
 	return filepath.Join(c.currentDirectory(), kubectlFilename)
+}
+
+func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
+	if _, err := c.filestatFunc(filepath); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getMajorVersion(serverVersion *version.Info) (string, error) {

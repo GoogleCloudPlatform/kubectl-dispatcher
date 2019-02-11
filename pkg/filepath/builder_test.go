@@ -18,6 +18,7 @@ package filepath
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/version"
@@ -44,6 +45,30 @@ func createServerVersion(major string, minor string) *version.Info {
 		Major:      major,
 		Minor:      minor,
 		GitVersion: "SHOULD BE UNUSED",
+	}
+}
+
+func TestDefaultFilepath(t *testing.T) {
+	tests := []struct {
+		dirGetter DirectoryGetter
+		filePath  string
+	}{
+		{
+			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:  "/foo/bar/kubectl.default",
+		},
+		{
+			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("force dir error")},
+			filePath:  "kubectl.default",
+		},
+	}
+
+	for _, test := range tests {
+		builder := NewFilepathBuilder(test.dirGetter, nil)
+		filePath := builder.DefaultFilePath()
+		if filePath != test.filePath {
+			t.Errorf("Expected default file path (%s), got (%s)", test.filePath, filePath)
+		}
 	}
 }
 
@@ -149,10 +174,50 @@ func TestVersionedFilepath(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		builder := NewFilepathBuilder(test.dirGetter)
+		builder := NewFilepathBuilder(test.dirGetter, nil)
 		filePath := builder.VersionedFilePath(test.version)
 		if filePath != test.filePath {
 			t.Errorf("Expected versioned file path (%s), got (%s)", test.filePath, filePath)
+		}
+	}
+}
+
+func FilepathIsValid(string) (os.FileInfo, error) {
+	return nil, nil
+}
+
+func FilepathIsNotValid(string) (os.FileInfo, error) {
+	return nil, fmt.Errorf("Forced filepath validate error")
+}
+
+func TestValidateFilepath(t *testing.T) {
+	tests := []struct {
+		dirGetter    DirectoryGetter
+		validateFunc func(string) (os.FileInfo, error)
+		expectError  bool
+	}{
+		{
+			dirGetter:    FakeDirGetter{dir: "/foo/bar", err: nil},
+			validateFunc: FilepathIsValid,
+			expectError:  false,
+		},
+		{
+			dirGetter:    FakeDirGetter{dir: "/foo/bar", err: nil},
+			validateFunc: FilepathIsNotValid,
+			expectError:  true,
+		},
+	}
+
+	for _, test := range tests {
+		builder := NewFilepathBuilder(test.dirGetter, test.validateFunc)
+		if !test.expectError {
+			if err := builder.ValidateFilepath("/foo/bar/kubectl.default"); err != nil {
+				t.Errorf("Unexpected error in ValidateFilepath")
+			}
+		} else {
+			if err := builder.ValidateFilepath("/foo/bar/kubectl.default"); err == nil {
+				t.Errorf("Expected error in ValidateFilepath not received")
+			}
 		}
 	}
 }
