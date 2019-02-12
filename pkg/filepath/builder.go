@@ -75,12 +75,12 @@ func (c *FilepathBuilder) currentDirectory() string {
 	if c.dirGetter != nil {
 		dir, err := c.dirGetter.CurrentDirectory()
 		if err != nil {
-			klog.Infof("kubectl dispatcher current directory error: (%v)", err)
+			klog.Warningf("kubectl dispatcher current directory error: (%v)", err)
 		} else {
 			currentDirectory = dir
 		}
 	} else {
-		klog.Infof("directory getter is nil; using empty current directory")
+		klog.Warningf("directory getter is nil; using empty current directory")
 	}
 	return currentDirectory
 }
@@ -103,13 +103,13 @@ func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string 
 				// Example: major: "1", minor: "12" -> "kubectl.1.12"
 				kubectlFilename, err = createKubectlBinaryFilename(majorVersion, minorVersion)
 			} else {
-				klog.Infof("kubectl dispatching default binary: (%v)", err)
+				klog.Warningf("Error generating minor version number: (%v)", err)
 			}
 		} else {
-			klog.Infof("kubectl dispatching default binary: (%v)", err)
+			klog.Warningf("Error generating major version number: (%v)", err)
 		}
 	} else {
-		klog.Infof("kubectl dispatching default binary: server version is nil")
+		klog.Warningf("Server version is nil while generating versioned file path")
 	}
 	return filepath.Join(c.currentDirectory(), kubectlFilename)
 }

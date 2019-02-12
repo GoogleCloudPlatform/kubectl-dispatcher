@@ -40,28 +40,6 @@ func createFakeDiscoveryClient(version *version.Info, err error) FakeDiscoveryCl
 	}
 }
 
-func TestNewServerVersionClient(t *testing.T) {
-	fake := FakeDiscoveryClient{}
-	client, err := NewServerVersionClient(fake)
-	if client == nil {
-		t.Errorf("Error: missing server version client")
-	}
-	if err != nil {
-		t.Errorf("Unexpected error creating server version client: (%v)", err)
-	}
-	if client.delegate != fake {
-		t.Errorf("Server version client: delegate not properly initialized")
-	}
-	if client.version != nil {
-		t.Errorf("Server version client: version field is unexpectedly initialized (%v)", client.version)
-	}
-	// Validate that a nil parameter causes an error
-	client, err = NewServerVersionClient(nil)
-	if client != nil || err == nil {
-		t.Errorf("Nil discovery client parameter should return error")
-	}
-}
-
 func TestServerVersion(t *testing.T) {
 	tests := []struct {
 		version      *version.Info
@@ -75,23 +53,15 @@ func TestServerVersion(t *testing.T) {
 		},
 		// Force a discovery client error, which should propogate
 		{
-			version:      &version.Info{Major: "1", Minor: "10"},
-			discoveryErr: fmt.Errorf("Force discovery client error"),
-			expectedErr:  true,
-		},
-		// Empty returned server version should cause error
-		{
 			version:      nil,
-			discoveryErr: nil,
+			discoveryErr: fmt.Errorf("Force discovery client error"),
 			expectedErr:  true,
 		},
 	}
 	for _, test := range tests {
-		client, _ := NewServerVersionClient(createFakeDiscoveryClient(test.version, test.discoveryErr))
+		client := NewServerVersionClient(nil)
+		client.Delegate = createFakeDiscoveryClient(test.version, test.discoveryErr)
 		version, err := client.ServerVersion()
-		if err != nil && !test.expectedErr {
-			t.Errorf("Unexpected error in versioned file path: (%v)", err)
-		}
 		if test.expectedErr {
 			if err == nil {
 				t.Errorf("Expected error did not occur fetching ServerVersion")
@@ -100,9 +70,26 @@ func TestServerVersion(t *testing.T) {
 			if version != test.version {
 				t.Errorf("Expected server version (%s), got (%s)", test.version, version)
 			}
-			if client.version == nil {
-				t.Errorf("Server version client should have cached the server version")
-			}
 		}
+	}
+}
+
+func TestRequestTimeout(t *testing.T) {
+	expected := "160ms"
+	svclient := NewServerVersionClient(nil)
+	svclient.SetRequestTimeout(expected)
+	actual := svclient.GetRequestTimeout()
+	if expected != actual {
+		t.Errorf("Request timeout error: expected (%s), got (%s)", expected, actual)
+	}
+}
+
+func TestCacheMaxAge(t *testing.T) {
+	expected := uint64(44000)
+	svclient := NewServerVersionClient(nil)
+	svclient.SetCacheMaxAge(expected)
+	actual := svclient.GetCacheMaxAge()
+	if expected != actual {
+		t.Errorf("Request timeout error: expected (%d), got (%d)", expected, actual)
 	}
 }

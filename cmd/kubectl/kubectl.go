@@ -26,7 +26,6 @@ import (
 	"github.com/kubectl-dispatcher/pkg/filepath"
 	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog"
 
@@ -62,36 +61,40 @@ func main() {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
 	initFlags(kubeConfigFlags)
 
+	// Create the default kubectl full file path.
 	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
 	kubectlDefaultFilepath := filepathBuilder.DefaultFilePath()
+	kubectlFilepath := kubectlDefaultFilepath
 
-	// Fetch the server version; nil implies using the default version of kubectl.
-	// Then create the full versioned kubectl file path from the server version, and
-	// the current directory of this dispatcher binary.
+	// Fetch the server version and generate the kubectl binary full file path
+	// from this version.
 	// Example:
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
-	kubectlFilepath := kubectlDefaultFilepath
-	if serverVersion := getServerVersion(kubeConfigFlags); serverVersion != nil {
+	svclient := client.NewServerVersionClient(kubeConfigFlags)
+	serverVersion, err := svclient.ServerVersion()
+	if err == nil {
 		klog.Infof("Server Version: %s", serverVersion.GitVersion)
 		kubectlFilepath = filepathBuilder.VersionedFilePath(serverVersion)
-	}
-	// Fall back to default kubectl binary if versioned kubectl is bad.
-	if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
-		klog.Infof("Invalid kubectl filepath: %s (%v)", kubectlFilepath, err)
-		kubectlFilepath = kubectlDefaultFilepath
-		// If default kubectl is also bad then fail. This is should be the
-		// only error the dispatcher surfaces.
+		// Ensure this kubectl binary exists; otherwise fall back to default.
 		if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
-			klog.Errorf("Invalid default kubectl filepath: %s (%v) ", kubectlFilepath, err)
-			os.Exit(1)
+			klog.Warningf("Invalid kubectl filepath: %s (%v)", kubectlFilepath, err)
+			// If default kubectl is also bad then fail. This is should be the
+			// only error the dispatcher surfaces.
+			kubectlFilepath = kubectlDefaultFilepath
+			if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
+				klog.Errorf("Invalid default kubectl filepath: %s (%v) ", kubectlFilepath, err)
+				os.Exit(1)
+			}
 		}
+	} else {
+		klog.Warningf("Error retrieving server version: (%v)", err)
 	}
 
 	// Delegate to the versioned or default kubectl binary. This overwrites the
 	// current process (by calling execve(2) system call), and it does not return
 	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
-	err := syscall.Exec(kubectlFilepath, args, env)
+	err = syscall.Exec(kubectlFilepath, args, env)
 	if err != nil {
 		klog.Errorf("kubectl dispatcher error: problem with Exec: (%v)", err)
 	}
@@ -125,28 +128,4 @@ func WordSepNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		return pflag.NormalizedName(strings.Replace(name, "_", "-", -1))
 	}
 	return pflag.NormalizedName(name)
-}
-
-// getServerVersion returns the server version of the Kubernetes cluster, or
-// nil if there is an error.
-func getServerVersion(kubeConfigFlags *genericclioptions.ConfigFlags) *version.Info {
-	// Using the kube config flags values, create the discovery client and contact
-	// the api server to retrieve the version.
-	klog.Info("Creating discovery client")
-	discoveryClient, err := kubeConfigFlags.ToDiscoveryClient()
-	if err != nil {
-		klog.Infof("kubectl dispatcher error: unable to create discovery client (%v)", err)
-		return nil
-	}
-	serverVersionClient, err := client.NewServerVersionClient(discoveryClient)
-	if err != nil {
-		klog.Infof("kubectl dispatcher error: error creating server version client (%v)", err)
-		return nil
-	}
-	serverVersion, err := serverVersionClient.ServerVersion()
-	if err != nil {
-		klog.Infof("kubectl dispatcher error: error retrieving server version (%v)", err)
-		return nil
-	}
-	return serverVersion
 }
