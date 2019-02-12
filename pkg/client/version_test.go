@@ -60,7 +60,7 @@ func TestServerVersion(t *testing.T) {
 	}
 	for _, test := range tests {
 		client := NewServerVersionClient(nil)
-		client.Delegate = createFakeDiscoveryClient(test.version, test.discoveryErr)
+		client.delegate = createFakeDiscoveryClient(test.version, test.discoveryErr)
 		version, err := client.ServerVersion()
 		if test.expectedErr {
 			if err == nil {

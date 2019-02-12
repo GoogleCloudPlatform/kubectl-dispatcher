@@ -29,16 +29,16 @@ const defaultCacheMaxAge = 60 * 60 * 24 // Seconds in one day
 // the discovery.ServerVersionInterface, allowing the creation of a
 // mock or fake for testing.
 type ServerVersionClient struct {
-	Flags          *genericclioptions.ConfigFlags
-	Delegate       discovery.ServerVersionInterface
+	flags          *genericclioptions.ConfigFlags
+	delegate       discovery.ServerVersionInterface
 	requestTimeout string // Examples: "650ms", "2s"
 	cacheMaxAge    uint64 // Maximum cache age allowed in seconds
 }
 
 func NewServerVersionClient(kubeConfigFlags *genericclioptions.ConfigFlags) *ServerVersionClient {
 	return &ServerVersionClient{
-		Flags:          kubeConfigFlags,
-		Delegate:       nil,
+		flags:          kubeConfigFlags,
+		delegate:       nil,
 		requestTimeout: defaultRequestTimeout,
 		cacheMaxAge:    defaultCacheMaxAge,
 	}
@@ -64,13 +64,13 @@ func (c *ServerVersionClient) ServerVersion() (*version.Info, error) {
 	// TODO: Implement caching here.
 	// Create the discovery client if it doesn't already exist. Add
 	// the request timeout flag value.
-	if c.Delegate == nil {
-		c.Flags.Timeout = &c.requestTimeout
-		discoveryClient, err := c.Flags.ToDiscoveryClient()
+	if c.delegate == nil {
+		c.flags.Timeout = &c.requestTimeout
+		discoveryClient, err := c.flags.ToDiscoveryClient()
 		if err != nil {
 			return nil, err
 		}
-		c.Delegate = discoveryClient
+		c.delegate = discoveryClient
 	}
-	return c.Delegate.ServerVersion()
+	return c.delegate.ServerVersion()
 }
