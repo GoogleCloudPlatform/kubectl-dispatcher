@@ -75,10 +75,14 @@ func TestServerVersion(t *testing.T) {
 }
 
 func TestRequestTimeout(t *testing.T) {
-	expected := "160ms"
 	svclient := NewServerVersionClient(nil)
-	svclient.SetRequestTimeout(expected)
 	actual := svclient.GetRequestTimeout()
+	if actual != defaultRequestTimeout {
+		t.Errorf("Default request timeout: expected (%s), got (%s)", defaultRequestTimeout, actual)
+	}
+	expected := "160ms"
+	svclient.SetRequestTimeout(expected)
+	actual = svclient.GetRequestTimeout()
 	if expected != actual {
 		t.Errorf("Request timeout error: expected (%s), got (%s)", expected, actual)
 	}

@@ -62,9 +62,10 @@ func (c *ServerVersionClient) SetCacheMaxAge(cacheMaxAge uint64) {
 
 func (c *ServerVersionClient) ServerVersion() (*version.Info, error) {
 	// TODO: Implement caching here.
-	// Cache the discovery client if we haven't already.
+	// Create the discovery client if it doesn't already exist. Add
+	// the request timeout flag value.
 	if c.Delegate == nil {
-		// TODO: Update timeout into the kube config flags, then create the discovery client.
+		c.Flags.Timeout = &c.requestTimeout
 		discoveryClient, err := c.Flags.ToDiscoveryClient()
 		if err != nil {
 			return nil, err
