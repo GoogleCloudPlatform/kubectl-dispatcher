@@ -78,7 +78,7 @@ func main() {
 		// Ensure this kubectl binary exists; otherwise fall back to default.
 		if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
 			klog.Warningf("Invalid kubectl filepath: %s (%v)", kubectlFilepath, err)
-			// If default kubectl is also bad then fail. This is should be the
+			// If default kubectl is also bad then fail. This should be the
 			// only error the dispatcher surfaces.
 			kubectlFilepath = kubectlDefaultFilepath
 			if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
@@ -88,6 +88,12 @@ func main() {
 		}
 	} else {
 		klog.Warningf("Error retrieving server version: (%v)", err)
+		// If default kubectl is also bad then fail. This should be the
+		// only error the dispatcher surfaces.
+		if err := filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
+			klog.Errorf("Invalid default kubectl filepath: %s (%v) ", kubectlFilepath, err)
+			os.Exit(1)
+		}
 	}
 
 	// Delegate to the versioned or default kubectl binary. This overwrites the

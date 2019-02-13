@@ -65,7 +65,7 @@ func (c *ServerVersionClient) ServerVersion() (*version.Info, error) {
 	// Create the discovery client if it doesn't already exist. Add
 	// the request timeout flag value.
 	if c.delegate == nil {
-		c.flags.Timeout = &c.requestTimeout
+		*c.flags.Timeout = c.requestTimeout
 		discoveryClient, err := c.flags.ToDiscoveryClient()
 		if err != nil {
 			return nil, err
