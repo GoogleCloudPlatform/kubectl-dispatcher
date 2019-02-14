@@ -33,6 +33,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+// Timeout for server version query.
 const requestTimeout = "5s"
 
 // The kubectl dispatcher is a wrapper which retrieves the server version from
@@ -43,7 +44,7 @@ const requestTimeout = "5s"
 // this binary.
 //
 // IMPORTANT: Versioned kubectl binaries that are dispatched to, MUST be in
-// the same directory as this dispatcher binary. Versioned kubectl binaries
+// the "clibin" subdirectory to the current directory. Versioned kubectl binaries
 // MUST follow the naming convention: kubectl.<major>.<minor>. Example:
 // kubectl.1.12.
 //
