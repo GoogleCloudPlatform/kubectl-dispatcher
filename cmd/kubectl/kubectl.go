@@ -34,7 +34,8 @@ import (
 )
 
 // Timeout for server version query.
-const requestTimeout = "5s"
+const requestTimeout = "2s"
+const cacheMaxAge = 60 * 60 // 1 hour in seconds
 
 // The kubectl dispatcher is a wrapper which retrieves the server version from
 // a cluster, and executes the appropriate kubectl version. For example, if a
@@ -75,6 +76,7 @@ func main() {
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
 	svclient := client.NewServerVersionClient(kubeConfigFlags)
 	svclient.SetRequestTimeout(requestTimeout)
+	svclient.SetCacheMaxAge(cacheMaxAge)
 	serverVersion, err := svclient.ServerVersion()
 	if err == nil {
 		klog.Infof("Server Version: %s", serverVersion.GitVersion)
