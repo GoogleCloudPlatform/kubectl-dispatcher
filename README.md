@@ -41,8 +41,36 @@ $ go build cmd/kubectl/kubectl.go
 ```
 ## Test
 
+
+### Unit Tests
+
 ```bash
 $ go test -v ./pkg/...
+```
+
+### End-to-End Tests
+
+Add the dispatcher to the current directory.
+
+```bash
+$ cp DISPATCHER_BINARY $(pwd)/kubectl
+$ chmod u+x kubectl
+```
+
+Add all the versioned kubectl binaries in the 'clibin' subdirectory. Do this for
+every cluster version tested. Example for a 1.11 cluster:
+
+```bash
+$ wget https://storage.googleapis.com/kubernetes-release/release/v1.11.7/bin/linux/amd64/kubectl
+$ mv kubectl clibin/kubectl.1.11
+$ chmod +x clibin/kubectl.1.11
+```
+
+Run the end-to-end test. In the following example, we test the [sig-cli] tests
+of a 1.11 cluster:
+
+```bash
+$ kubetest --extract=release/stable-1.11 --up --test --down --test_args="--kubectl-path=$(pwd)/kubectl --ginkgo.focus=\[sig\-cli\]"
 ```
 
 ## Run
@@ -54,8 +82,8 @@ the downloaded release.
 
 ```bash
 $ wget https://storage.googleapis.com/kubernetes-release/release/v1.10.11/bin/linux/amd64/kubectl
-$ mv kubectl clibin/kubectl-1.10
-$ chmod +x clibin/kubectl-1.10
+$ mv kubectl clibin/kubectl.1.10
+$ chmod +x clibin/kubectl.1.10
 ```
 
 Run the kubectl dispatcher. The verbosity is useful for debugging.
