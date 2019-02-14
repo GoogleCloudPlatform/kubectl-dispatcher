@@ -73,7 +73,10 @@ func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.Fil
 
 const kubectlDefaultName = "kubectl.default"
 
-func (c *FilepathBuilder) currentDirectory() string {
+// clibinDir returns the full file path to the directory for storing the
+// versioned kubectl binaries (e.g. kubectl.1.12, kubectl.default), since
+// we don't want these binaries showing up in the PATH.
+func (c *FilepathBuilder) clibinDir() string {
 	currentDirectory := "" // Use empty directory upon error.
 	if c.dirGetter != nil {
 		dir, err := c.dirGetter.CurrentDirectory()
@@ -85,11 +88,12 @@ func (c *FilepathBuilder) currentDirectory() string {
 	} else {
 		klog.Warningf("directory getter is nil; using empty current directory")
 	}
+	// Add "/clibin" as subdirectory to current directory for versioned kubectl binaries.
 	return filepath.Join(currentDirectory, clibinDir)
 }
 
 func (c *FilepathBuilder) DefaultFilePath() string {
-	return filepath.Join(c.currentDirectory(), kubectlDefaultName)
+	return filepath.Join(c.clibinDir(), kubectlDefaultName)
 }
 
 // VersionedFilePath returns the full absolute file path to the
@@ -114,7 +118,7 @@ func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string 
 	} else {
 		klog.Warningf("Server version is nil while generating versioned file path")
 	}
-	return filepath.Join(c.currentDirectory(), kubectlFilename)
+	return filepath.Join(c.clibinDir(), kubectlFilename)
 }
 
 func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
