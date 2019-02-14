@@ -55,11 +55,11 @@ func TestDefaultFilepath(t *testing.T) {
 	}{
 		{
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		{
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("force dir error")},
-			filePath:  "kubectl.default",
+			filePath:  "clibin/kubectl.default",
 		},
 	}
 
@@ -81,96 +81,96 @@ func TestVersionedFilepath(t *testing.T) {
 		{
 			version:   createServerVersion("1", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			filePath:  "/foo/bar/clibin/kubectl.1.9",
 		},
 		{
 			version:   createServerVersion("\t1", " 9\n"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			filePath:  "/foo/bar/clibin/kubectl.1.9",
 		},
 		{
 			version:   createServerVersion("1", "9+"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			filePath:  "/foo/bar/clibin/kubectl.1.9",
 		},
 		{
 			version:   createServerVersion("1", "9.9-gke.1"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			filePath:  "/foo/bar/clibin/kubectl.1.9",
 		},
 		{
 			version:   createServerVersion("1", "12"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			filePath:  "/foo/bar/clibin/kubectl.1.12",
 		},
 		{
 			version:   createServerVersion("\t1", " 12\n"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			filePath:  "/foo/bar/clibin/kubectl.1.12",
 		},
 		{
 			version:   createServerVersion("1", "12+"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			filePath:  "/foo/bar/clibin/kubectl.1.12",
 		},
 		{
 			version:   createServerVersion("1", "12.3-gke.1"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			filePath:  "/foo/bar/clibin/kubectl.1.12",
 		},
 		// Nil server version maps to default kubectl
 		{
 			version:   nil,
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Non-digit major version not allowed; use default
 		{
 			version:   createServerVersion("k", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Non-digit minor version not allowed; use default
 		{
 			version:   createServerVersion("1", "s"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Empty/space major version not allowed; use default
 		{
 			version:   createServerVersion(" \t", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Empty/space minor version not allowed; use default
 		{
 			version:   createServerVersion("1", "\n"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Zero as major version not allowed; use default
 		{
 			version:   createServerVersion("0", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Zero as minor version not allowed; use default
 		{
 			version:   createServerVersion("1", "0"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.default",
+			filePath:  "/foo/bar/clibin/kubectl.default",
 		},
 		// Nil directory getter defaults to no directory
 		{
 			version:   createServerVersion("1", "9"),
 			dirGetter: nil,
-			filePath:  "kubectl.1.9",
+			filePath:  "clibin/kubectl.1.9",
 		},
 		// // Error in retrieving current directory defaults to no directory
 		{
 			version:   createServerVersion("1", "9"),
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("Forced error")},
-			filePath:  "kubectl.1.9",
+			filePath:  "clibin/kubectl.1.9",
 		},
 	}
 	for _, test := range tests {
@@ -211,11 +211,11 @@ func TestValidateFilepath(t *testing.T) {
 	for _, test := range tests {
 		builder := NewFilepathBuilder(test.dirGetter, test.validateFunc)
 		if !test.expectError {
-			if err := builder.ValidateFilepath("/foo/bar/kubectl.default"); err != nil {
+			if err := builder.ValidateFilepath("/foo/bar/clibin/kubectl.default"); err != nil {
 				t.Errorf("Unexpected error in ValidateFilepath")
 			}
 		} else {
-			if err := builder.ValidateFilepath("/foo/bar/kubectl.default"); err == nil {
+			if err := builder.ValidateFilepath("/foo/bar/clibin/kubectl.default"); err == nil {
 				t.Errorf("Expected error in ValidateFilepath not received")
 			}
 		}

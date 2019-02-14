@@ -33,6 +33,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const requestTimeout = "5s"
+
 // The kubectl dispatcher is a wrapper which retrieves the server version from
 // a cluster, and executes the appropriate kubectl version. For example, if a
 // user is configured to talk to their Kubernetes cluster that is version
@@ -71,6 +73,7 @@ func main() {
 	// Example:
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
 	svclient := client.NewServerVersionClient(kubeConfigFlags)
+	svclient.SetRequestTimeout(requestTimeout)
 	serverVersion, err := svclient.ServerVersion()
 	if err == nil {
 		klog.Infof("Server Version: %s", serverVersion.GitVersion)

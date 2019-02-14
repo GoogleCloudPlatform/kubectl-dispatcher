@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/discovery"
 )
 
-const defaultRequestTimeout = "2s"
+const defaultRequestTimeout = "5s"
 const defaultCacheMaxAge = 60 * 60 * 24 // Seconds in one day
 
 // Encapsulates the client which fetches the server version. Implements

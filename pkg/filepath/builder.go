@@ -28,6 +28,9 @@ import (
 	"k8s.io/klog"
 )
 
+// Subdirectory for versioned kubectl binaries. Keeps these binaries out of PATH.
+const clibinDir = "clibin"
+
 // DirectoryGetter implements a single function returning the "current directory".
 type DirectoryGetter interface {
 	CurrentDirectory() (string, error)
@@ -82,7 +85,7 @@ func (c *FilepathBuilder) currentDirectory() string {
 	} else {
 		klog.Warningf("directory getter is nil; using empty current directory")
 	}
-	return currentDirectory
+	return filepath.Join(currentDirectory, clibinDir)
 }
 
 func (c *FilepathBuilder) DefaultFilePath() string {
