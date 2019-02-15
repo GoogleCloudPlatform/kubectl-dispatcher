@@ -17,10 +17,21 @@ limitations under the License.
 package client
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/client-go/rest/fake"
 )
 
 func TestNewServerVersionClient(t *testing.T) {
@@ -72,4 +83,97 @@ func TestCacheMaxAge(t *testing.T) {
 	if expected != actual {
 		t.Errorf("Request timeout error: expected (%d), got (%d)", expected, actual)
 	}
+}
+
+func TestServerVersionCorrectlyReturnsVersion(t *testing.T) {
+	expected := createServerVersion(1, 10)
+	serverVersionBytes, err := json.Marshal(*expected)
+	if err != nil {
+		t.Fatalf("Unexpected JSON marshal error for server version: (%v)", err)
+	}
+	var body io.ReadCloser = ioutil.NopCloser(bytes.NewReader(serverVersionBytes))
+	fakeRestClient := &fake.RESTClient{
+		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == "/version" && m == "GET":
+				// Validate the Cache-Control header.
+				if value, ok := req.Header["Cache-Control"]; !ok {
+					t.Errorf("Missing Cache-Control HTTP header")
+					if !strings.HasPrefix(value[0], "max-age=") {
+						t.Errorf("Erroneous Cache-Control HTTP header: (%s)", value)
+					}
+				}
+				// Validate the timeout query parameter was set.
+				requestTimeout := req.URL.Query().Get("timeout")
+				if requestTimeout != defaultRequestTimeout.String() {
+					t.Errorf("Expected request timeout (%s), got (%s)", defaultRequestTimeout.String(), requestTimeout)
+				}
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: body}, nil
+			default:
+				t.Fatalf("Unexpected request: %#v\n%#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+	svclient := NewServerVersionClient(nil) // kubeConfigFlags are unused
+	svclient.delegate = fakeRestClient      // Force ServerVersionClient to use fake RESTClient
+	actual, err := svclient.ServerVersion()
+	if err != nil {
+		t.Errorf("Unexpected error retrieving ServerVersion")
+	}
+	if expected.Major != actual.Major {
+		t.Errorf("Expected server major version (%s), got (%s)", expected.Major, actual.Major)
+	}
+	if expected.Minor != actual.Minor {
+		t.Errorf("Expected server minor version (%s), got (%s)", expected.Minor, actual.Minor)
+	}
+}
+
+func TestServerVersionErrorOnBadVersion(t *testing.T) {
+	// Set up an empty server version for the body of the HTTP response.
+	var body io.ReadCloser = ioutil.NopCloser(bytes.NewReader([]byte{}))
+	fakeRestClient := &fake.RESTClient{
+		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == "/version" && m == "GET":
+				// Validate the Cache-Control header.
+				if value, ok := req.Header["Cache-Control"]; !ok {
+					t.Errorf("Missing Cache-Control HTTP header")
+					if !strings.HasPrefix(value[0], "max-age=") {
+						t.Errorf("Erroneous Cache-Control HTTP header: (%s)", value)
+					}
+				}
+				// Validate the timeout query parameter was set.
+				requestTimeout := req.URL.Query().Get("timeout")
+				if requestTimeout != defaultRequestTimeout.String() {
+					t.Errorf("Expected request timeout (%s), got (%s)", defaultRequestTimeout.String(), requestTimeout)
+				}
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: body}, nil
+			default:
+				t.Fatalf("Unexpected request: %#v\n%#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+	svclient := NewServerVersionClient(nil) // kubeConfigFlags are unused
+	svclient.delegate = fakeRestClient      // Force ServerVersionClient to use fake RESTClient
+	_, err := svclient.ServerVersion()
+	if err == nil {
+		t.Errorf("Expected error retrieving empty server version did not occur")
+	}
+}
+
+func createServerVersion(major int, minor int) *version.Info {
+	return &version.Info{
+		Major: strconv.Itoa(major),
+		Minor: strconv.Itoa(minor),
+	}
+}
+
+func defaultHeader() http.Header {
+	header := http.Header{}
+	header.Set("Content-Type", runtime.ContentTypeJSON)
+	return header
 }

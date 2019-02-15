@@ -460,6 +460,7 @@
     "plugin/pkg/client/auth/oidc",
     "plugin/pkg/client/auth/openstack",
     "rest",
+    "rest/fake",
     "rest/watch",
     "restmapper",
     "third_party/forked/golang/template",
@@ -495,6 +496,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "711ef01baf3ec4b7c4c51446221882ba228ab194858181f5ae791a7759eac8a6"
+  inputs-digest = "279e109eee976a11d04078dc24fde3a2e6467ed058cfd60b3112281705db9192"
   solver-name = "gps-cdcl"
   solver-version = 1
