@@ -28,6 +28,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+// kubectl version executed if there is a problem matching the server version.
+const defaultVersion = "1.11"
+
 // The kubectl dispatcher is a wrapper which retrieves the server version from
 // a cluster, and executes the appropriate kubectl version. For example, if a
 // user is configured to talk to their Kubernetes cluster that is version
@@ -36,9 +39,8 @@ import (
 // this binary.
 //
 // IMPORTANT: Versioned kubectl binaries that are dispatched to, MUST be in
-// the "clibin" subdirectory to the current directory. Versioned kubectl binaries
-// MUST follow the naming convention: kubectl.<major>.<minor>. Example:
-// kubectl.1.12.
+// the the current directory. Versioned kubectl binaries MUST follow the
+// naming convention: kubectl.<major>.<minor>. Example: kubectl.1.12.
 //
 // NOTE: versioned kubectl filenames must NOT start with "kubectl-", since
 // that is reserved for plugins. Therefore, we prefix versioned kubectl
@@ -51,7 +53,7 @@ func main() {
 		klog.Warningf("Dispatch error: %v", err)
 	}
 
-	kubectlDefaultFilepath := filepathBuilder.DefaultFilePath()
+	kubectlDefaultFilepath := filepathBuilder.DefaultFilePath(defaultVersion)
 	if err := filepathBuilder.ValidateFilepath(kubectlDefaultFilepath); err != nil {
 		klog.Errorf("Error validating default kubectl: %s (%v)", kubectlDefaultFilepath, err)
 		os.Exit(1)

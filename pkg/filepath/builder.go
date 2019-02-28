@@ -28,9 +28,6 @@ import (
 	"k8s.io/klog"
 )
 
-// Subdirectory for versioned kubectl binaries. Keeps these binaries out of PATH.
-const clibinDir = "clibin"
-
 // DirectoryGetter implements a single function returning the "current directory".
 type DirectoryGetter interface {
 	CurrentDirectory() (string, error)
@@ -71,12 +68,9 @@ func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.Fil
 	}
 }
 
-const kubectlDefaultName = "kubectl.default"
-
-// clibinDir returns the full file path to the directory for storing the
-// versioned kubectl binaries (e.g. kubectl.1.12, kubectl.default), since
-// we don't want these binaries showing up in the PATH.
-func (c *FilepathBuilder) clibinDir() string {
+// currentDir returns the full file path to the directory for storing the
+// versioned kubectl binaries (e.g. kubectl.1.12, kubectl.default).
+func (c *FilepathBuilder) currentDir() string {
 	currentDirectory := "" // Use empty directory upon error.
 	if c.dirGetter != nil {
 		dir, err := c.dirGetter.CurrentDirectory()
@@ -88,20 +82,28 @@ func (c *FilepathBuilder) clibinDir() string {
 	} else {
 		klog.Warningf("directory getter is nil; using empty current directory")
 	}
-	// Add "/clibin" as subdirectory to current directory for versioned kubectl binaries.
-	return filepath.Join(currentDirectory, clibinDir)
+	return currentDirectory
 }
 
-func (c *FilepathBuilder) DefaultFilePath() string {
-	return filepath.Join(c.clibinDir(), kubectlDefaultName)
+func (c *FilepathBuilder) DefaultFilePath(version string) string {
+	parts := strings.Split(version, ".")
+	if len(parts) != 2 {
+		klog.Warningf("Bad default version: %s", version)
+		return ""
+	}
+	kubectlDefaultName, err := createKubectlBinaryFilename(parts[0], parts[1])
+	if err != nil {
+		klog.Warningf("Unable to create kubectl default version: (%v)", err)
+		return ""
+	}
+	return filepath.Join(c.currentDir(), kubectlDefaultName)
 }
 
 // VersionedFilePath returns the full absolute file path to the
 // versioned kubectl binary to dispatch to. On error, the full path to the
 // default kubectl binary is returned.
 func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string {
-	// Use default filename upon error.
-	kubectlFilename := kubectlDefaultName
+	kubectlFilename := ""
 	if serverVersion != nil {
 		majorVersion, err := getMajorVersion(serverVersion)
 		if err == nil {
@@ -118,7 +120,7 @@ func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string 
 	} else {
 		klog.Warningf("Server version is nil while generating versioned file path")
 	}
-	return filepath.Join(c.clibinDir(), kubectlFilename)
+	return filepath.Join(c.currentDir(), kubectlFilename)
 }
 
 func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
