@@ -25,6 +25,8 @@ import (
 	"unicode"
 
 	"k8s.io/apimachinery/pkg/version"
+
+	// klog calls in this file assume it has been initialized beforehand
 	"k8s.io/klog"
 )
 

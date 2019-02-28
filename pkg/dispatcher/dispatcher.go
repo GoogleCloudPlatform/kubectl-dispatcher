@@ -17,15 +17,16 @@ limitations under the License.
 package dispatcher
 
 import (
-	"flag"
-	"strings"
 	"syscall"
 
 	"github.com/kubectl-dispatcher/pkg/client"
 	"github.com/kubectl-dispatcher/pkg/filepath"
 	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
+	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	// klog calls in this file assume it has been initialized beforehand
 	"k8s.io/klog"
 )
 
@@ -38,12 +39,34 @@ type Dispatcher struct {
 	filepathBuilder *filepath.FilepathBuilder
 }
 
+// NewDispatcher returns a new pointer to a Dispatcher struct.
 func NewDispatcher(args []string, env []string, filepathBuilder *filepath.FilepathBuilder) *Dispatcher {
 	return &Dispatcher{
-		args:            copyStrSlice(args),
-		env:             copyStrSlice(env),
+		args:            args,
+		env:             env,
 		filepathBuilder: filepathBuilder,
 	}
+}
+
+// GetArgs returns a copy of the slice of strings representing the command line arguments.
+func (d *Dispatcher) GetArgs() []string {
+	return copyStrSlice(d.args)
+}
+
+// FilterArgs returns a copy of the slice of strings representing the command line arguments
+// removing all the instances of each item in the passed "remove" slice. Used to return
+// a slice of the command line args without flags in the "remove" slice.
+func (d *Dispatcher) FilterArgs(remove []string) []string {
+	args := d.GetArgs()
+	for _, r := range remove {
+		args = util.RemoveAllElements(args, r)
+	}
+	return args
+}
+
+// GetEnv returns a copy of the slice of environment variables.
+func (d *Dispatcher) GetEnv() []string {
+	return copyStrSlice(d.env)
 }
 
 func copyStrSlice(s []string) []string {
@@ -52,47 +75,41 @@ func copyStrSlice(s []string) []string {
 	return c
 }
 
-func (d *Dispatcher) InitFlags() *genericclioptions.ConfigFlags {
+// InitKubeConfigFlags returns the ConfigFlags struct filled in with parsed
+// kube config values parsed from command line arguments. These flag values can
+// affect the server version query. Therefore, the set of kubeConfigFlags MUST
+// match the set used in the regular kubectl binary.
+func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
+
+	kubeConfigFlagSet := pflag.NewFlagSet("dispatcher", pflag.ExitOnError)
+	kubeConfigFlagSet.ParseErrorsWhitelist.UnknownFlags = true
+	kubeConfigFlagSet.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 
 	usePersistentConfig := true
 	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
+	kubeConfigFlags.AddFlags(kubeConfigFlagSet)
 
-	klog.InitFlags(flag.CommandLine)
-	pflag.CommandLine.ParseErrorsWhitelist.UnknownFlags = true
-	pflag.CommandLine.SetNormalizeFunc(wordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine) // Combine the flag and pflag FlagSets
-	kubeConfigFlags.AddFlags(pflag.CommandLine)      // Binds kubeConfigFlags to the pflag FlagSet
 	// Remove help flags, since these are special-cased in pflag.Parse,
 	// and handled in the dispatcher instead of passed to versioned binary.
-	argsCopy := copyStrSlice(d.args[1:])
-	argsCopy = util.RemoveAllElements(argsCopy, "-h")
-	argsCopy = util.RemoveAllElements(argsCopy, "--help")
-	pflag.CommandLine.Parse(argsCopy) // Fills in flags in FlagSet from args
-	pflag.VisitAll(func(flag *pflag.Flag) {
-		klog.Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+	args := d.FilterArgs([]string{"-h", "--help"})
+	kubeConfigFlagSet.Parse(args[1:])
+	kubeConfigFlagSet.VisitAll(func(flag *pflag.Flag) {
+		klog.Infof("KubeConfig Flag: --%s=%q", flag.Name, flag.Value)
 	})
 
 	return kubeConfigFlags
 }
 
-// WordSepNormalizeFunc changes all flags that contain "_" separators
-// Copied from API Server
-func wordSepNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
-	if strings.Contains(name, "_") {
-		return pflag.NormalizedName(strings.Replace(name, "_", "-", -1))
-	}
-	return pflag.NormalizedName(name)
-}
-
+// Dispatch attempts to execute a matching version of kubectl based on the
+// version of the APIServer. If successful, this method will not return, since
+// current process will be overwritten (see execve(2)). Otherwise, this method
+// returns an error describing why the execution could not happen.
 func (d *Dispatcher) Dispatch() error {
-	// Initialize the flags: logs and kubeConfigFlags
-	defer klog.Flush()
-	kubeConfigFlags := d.InitFlags()
-
 	// Fetch the server version and generate the kubectl binary full file path
 	// from this version.
 	// Example:
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
+	kubeConfigFlags := d.InitKubeConfigFlags()
 	svclient := client.NewServerVersionClient(kubeConfigFlags)
 	svclient.SetRequestTimeout(requestTimeout)
 	svclient.SetCacheMaxAge(cacheMaxAge)
@@ -101,6 +118,7 @@ func (d *Dispatcher) Dispatch() error {
 		return err
 	}
 	klog.Infof("Server Version: %s", serverVersion.GitVersion)
+
 	kubectlFilepath := d.filepathBuilder.VersionedFilePath(serverVersion)
 	// Ensure the versioned kubectl binary exists.
 	if err := d.filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
@@ -111,9 +129,5 @@ func (d *Dispatcher) Dispatch() error {
 	// current process (by calling execve(2) system call), and it does not return
 	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
-	err = syscall.Exec(kubectlFilepath, d.args, d.env)
-	if err != nil {
-		return err
-	}
-	return nil
+	return syscall.Exec(kubectlFilepath, d.args, d.env)
 }

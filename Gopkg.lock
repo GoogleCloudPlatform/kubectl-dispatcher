@@ -59,6 +59,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/glog"
+  packages = ["."]
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -435,6 +441,12 @@
   revision = "d41becfba9ee9bf8e55cec1dd3934cd7cfc04b99"
 
 [[projects]]
+  branch = "release-1.10"
+  name = "k8s.io/apiserver"
+  packages = ["pkg/util/flag"]
+  revision = "30d6a91f580b7a2a240dccebc1a35bff2a6940f6"
+
+[[projects]]
   branch = "master"
   name = "k8s.io/cli-runtime"
   packages = [
@@ -496,6 +508,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "279e109eee976a11d04078dc24fde3a2e6467ed058cfd60b3112281705db9192"
+  inputs-digest = "d51cf0f8ef00f55533d60dfdb6b2cc7d292a67dcfd843b00f3133c1978418b8e"
   solver-name = "gps-cdcl"
   solver-version = 1
