@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog"
 )
 
+// TODO(seans): Turn these into dispatcher-specific flags
 const requestTimeout = "5s" // Timeout for server version query
 const cacheMaxAge = 60 * 60 // 1 hour in seconds
 
@@ -129,5 +130,5 @@ func (d *Dispatcher) Dispatch() error {
 	// current process (by calling execve(2) system call), and it does not return
 	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
-	return syscall.Exec(kubectlFilepath, d.args, d.env)
+	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
 }

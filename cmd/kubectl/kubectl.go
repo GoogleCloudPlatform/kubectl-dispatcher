@@ -79,12 +79,13 @@ func InitLogging() {
 	flagSetName := "dispatcher-logs"
 	logFlagSet := flag.NewFlagSet(flagSetName, flag.ExitOnError)
 	klog.InitFlags(logFlagSet)
-	args := make([]string, len(os.Args[1:])) // Defensive copy of command-line args
-	copy(args, os.Args[1:])
 	// Only pflags allows us to parse unknown flags.
 	plogFlagSet := pflag.NewFlagSet(flagSetName, pflag.ExitOnError)
 	plogFlagSet.ParseErrorsWhitelist.UnknownFlags = true
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	plogFlagSet.AddGoFlagSet(logFlagSet)
+	// Defensive copy of command-line args
+	args := make([]string, len(os.Args[1:]))
+	copy(args, os.Args[1:])
 	plogFlagSet.Parse(args)
 }
