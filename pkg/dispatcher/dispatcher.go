@@ -17,6 +17,7 @@ limitations under the License.
 package dispatcher
 
 import (
+	"fmt"
 	"syscall"
 
 	"github.com/kubectl-dispatcher/pkg/client"
@@ -24,6 +25,7 @@ import (
 	"github.com/kubectl-dispatcher/pkg/logging"
 	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	// klog calls in this file assume it has been initialized beforehand
@@ -37,14 +39,19 @@ const cacheMaxAge = 60 * 60 // 1 hour in seconds
 type Dispatcher struct {
 	args            []string
 	env             []string
+	clientVersion   *version.Info
 	filepathBuilder *filepath.FilepathBuilder
 }
 
 // NewDispatcher returns a new pointer to a Dispatcher struct.
-func NewDispatcher(args []string, env []string, filepathBuilder *filepath.FilepathBuilder) *Dispatcher {
+func NewDispatcher(args []string, env []string,
+	clientVersion *version.Info,
+	filepathBuilder *filepath.FilepathBuilder) *Dispatcher {
+
 	return &Dispatcher{
 		args:            args,
 		env:             env,
+		clientVersion:   clientVersion,
 		filepathBuilder: filepathBuilder,
 	}
 }
@@ -57,6 +64,10 @@ func (d *Dispatcher) GetArgs() []string {
 // GetEnv returns a copy of the slice of environment variables.
 func (d *Dispatcher) GetEnv() []string {
 	return util.CopyStrSlice(d.env)
+}
+
+func (d *Dispatcher) GetClientVersion() *version.Info {
+	return d.clientVersion
 }
 
 const kubeConfigFlagSetName = "dispatcher-kube-config"
@@ -102,6 +113,10 @@ func (d *Dispatcher) Dispatch() error {
 		return err
 	}
 	klog.Infof("Server Version: %s", serverVersion.GitVersion)
+	klog.Infof("Client Version: %s", d.GetClientVersion().GitVersion)
+	if versionMatch(d.GetClientVersion(), serverVersion) {
+		return fmt.Errorf("Client/Server version match--fall through to default")
+	}
 
 	kubectlFilepath := d.filepathBuilder.VersionedFilePath(serverVersion)
 	// Ensure the versioned kubectl binary exists.
@@ -114,4 +129,33 @@ func (d *Dispatcher) Dispatch() error {
 	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
+}
+
+// versionMatch returns true if the Major and Minor versions match
+// for the passed version infos v1 and v2. Examples:
+//   1.11.7 == 1.11.9
+//   1.11.7 != 1.10.7
+func versionMatch(v1 *version.Info, v2 *version.Info) bool {
+	if v1 != nil && v2 != nil {
+		major1, err := filepath.GetMajorVersion(v1)
+		if err != nil {
+			return false
+		}
+		major2, err := filepath.GetMajorVersion(v2)
+		if err != nil {
+			return false
+		}
+		minor1, err := filepath.GetMinorVersion(v1)
+		if err != nil {
+			return false
+		}
+		minor2, err := filepath.GetMinorVersion(v2)
+		if err != nil {
+			return false
+		}
+		if major1 == major2 && minor1 == minor2 {
+			return true
+		}
+	}
+	return false
 }

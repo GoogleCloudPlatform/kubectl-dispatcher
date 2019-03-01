@@ -19,8 +19,15 @@ package dispatcher
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
+
+var clientVersion = &version.Info{
+	Major:      "1",
+	Minor:      "11",
+	GitVersion: "v1.11.7",
+}
 
 func TestGetArgs(t *testing.T) {
 	tests := []struct {
@@ -36,7 +43,7 @@ func TestGetArgs(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dispatcher := NewDispatcher(test.args, []string{}, nil)
+		dispatcher := NewDispatcher(test.args, []string{}, clientVersion, nil)
 		actual := dispatcher.GetArgs()
 		if !isStringSliceEqual(test.args, actual) {
 			t.Errorf("Filter args error: expected (%v), got (%v)", test.args, actual)
@@ -56,7 +63,7 @@ func TestGetEnv(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dispatcher := NewDispatcher([]string{}, test.env, nil)
+		dispatcher := NewDispatcher([]string{}, test.env, clientVersion, nil)
 		actual := dispatcher.GetEnv()
 		if !isStringSliceEqual(test.env, actual) {
 			t.Errorf("GetEnv() error: expected (%v), got (%v)", test.env, actual)
@@ -78,6 +85,104 @@ func isStringSliceEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func TestGetClientVersion(t *testing.T) {
+	dispatcher := NewDispatcher([]string{}, []string{}, clientVersion, nil)
+	actual := dispatcher.GetClientVersion()
+	if clientVersion != actual {
+		t.Errorf("GetClientVersion() error: expected (%v), got (%v)", clientVersion, actual)
+	}
+}
+
+func TestVersionMatch(t *testing.T) {
+	tests := []struct {
+		v1          *version.Info
+		v2          *version.Info
+		expectEqual bool
+	}{
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: true,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "10",
+				GitVersion: "v1.10.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11+",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: true,
+		},
+		{
+			v1: &version.Info{
+				Major:      "2",
+				Minor:      "11",
+				GitVersion: "v2.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: nil,
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2:          nil,
+			expectEqual: false,
+		},
+		{
+			v1:          nil,
+			v2:          nil,
+			expectEqual: false,
+		},
+	}
+	for _, test := range tests {
+		actual := versionMatch(test.v1, test.v2)
+		if test.expectEqual != actual {
+			t.Errorf("VersionMatch error: expected (%t), got (%t) for (%+v)/(%+v)", test.expectEqual, actual, test.v1, test.v2)
+		}
+	}
 }
 
 func TestInitKubeConfigFlags(t *testing.T) {
@@ -116,7 +221,7 @@ func TestInitKubeConfigFlags(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, nil)
+		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, clientVersion, nil)
 		expected := createConfigFlags(test.args)
 		actual := dispatcher.InitKubeConfigFlags()
 		compareConfigFlags(t, expected, actual)

@@ -48,31 +48,6 @@ func createServerVersion(major string, minor string) *version.Info {
 	}
 }
 
-func TestDefaultFilepath(t *testing.T) {
-	tests := []struct {
-		dirGetter DirectoryGetter
-		filePath  string
-	}{
-		{
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.11",
-		},
-		{
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("force dir error")},
-			filePath:  "kubectl.1.11",
-		},
-	}
-
-	defaultVersion := "1.11"
-	for _, test := range tests {
-		builder := NewFilepathBuilder(test.dirGetter, nil)
-		filePath := builder.DefaultFilePath(defaultVersion)
-		if filePath != test.filePath {
-			t.Errorf("Expected default file path (%s), got (%s)", test.filePath, filePath)
-		}
-	}
-}
-
 func TestVersionedFilepath(t *testing.T) {
 	tests := []struct {
 		version   *version.Info

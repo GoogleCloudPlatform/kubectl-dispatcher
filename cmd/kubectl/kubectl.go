@@ -23,14 +23,19 @@ import (
 	"github.com/kubectl-dispatcher/pkg/dispatcher"
 	"github.com/kubectl-dispatcher/pkg/filepath"
 	"github.com/kubectl-dispatcher/pkg/logging"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/klog"
 
 	// Import to initialize client auth plugins.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-// kubectl version executed if there is a problem matching the server version.
-const defaultVersion = "1.11"
+// Hard-coded default client version.
+var clientVersion = &version.Info{
+	Major:      "1",
+	Minor:      "11",
+	GitVersion: "v1.11.7",
+}
 
 // The kubectl dispatcher is a wrapper which retrieves the server version from
 // a cluster, and executes the appropriate kubectl version. For example, if a
@@ -54,12 +59,13 @@ func main() {
 	// Dispatch() does not return if successful; the current process is overwritten.
 	klog.Info("Starting dispatcher")
 	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
-	dispatcher := dispatcher.NewDispatcher(os.Args, os.Environ(), filepathBuilder)
+	dispatcher := dispatcher.NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
 	if err := dispatcher.Dispatch(); err != nil {
 		klog.Warningf("Dispatch error: %v", err)
 	}
 
-	kubectlDefaultFilepath := filepathBuilder.DefaultFilePath(defaultVersion)
+	// Dispatch to the default kubectl binary.
+	kubectlDefaultFilepath := filepathBuilder.VersionedFilePath(clientVersion)
 	if err := filepathBuilder.ValidateFilepath(kubectlDefaultFilepath); err != nil {
 		klog.Errorf("Error validating default kubectl: %s (%v)", kubectlDefaultFilepath, err)
 		os.Exit(1)
