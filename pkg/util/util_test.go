@@ -23,47 +23,47 @@ import (
 func TestRemoveArg(t *testing.T) {
 	tests := []struct {
 		args     []string
-		toRemove string
+		toRemove []string
 		expected []string
 	}{
 		{
 			args:     []string{},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{},
 		},
 		{
 			args:     []string{"foo"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{"foo"},
 		},
 		{
 			args:     []string{"-h"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{},
 		},
 		{
 			args:     []string{"-h", "-h"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{},
 		},
 		{
 			args:     []string{"-h", "bar", "-h", "-h"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{"bar"},
 		},
 		{
 			args:     []string{"foo", "-h", "bar"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{"foo", "bar"},
 		},
 		{
 			args:     []string{"foo", "-h", "bar", "-h"},
-			toRemove: "-h",
+			toRemove: []string{"-h"},
 			expected: []string{"foo", "bar"},
 		},
 	}
 	for _, test := range tests {
-		actual := RemoveAllElements(test.args, test.toRemove)
+		actual := FilterList(test.args, test.toRemove)
 		if !slicesEqual(actual, test.expected) {
 			t.Errorf("Expected args (%v), got (%v)", test.expected, actual)
 		}
@@ -71,21 +71,17 @@ func TestRemoveArg(t *testing.T) {
 }
 
 func slicesEqual(a, b []string) bool {
-
 	// If one is nil, the other must also be nil.
 	if (a == nil) != (b == nil) {
 		return false
 	}
-
 	if len(a) != len(b) {
 		return false
 	}
-
 	for i := range a {
 		if a[i] != b[i] {
 			return false
 		}
 	}
-
 	return true
 }

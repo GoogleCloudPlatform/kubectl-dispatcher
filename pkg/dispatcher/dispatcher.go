@@ -21,9 +21,9 @@ import (
 
 	"github.com/kubectl-dispatcher/pkg/client"
 	"github.com/kubectl-dispatcher/pkg/filepath"
+	"github.com/kubectl-dispatcher/pkg/logging"
 	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	// klog calls in this file assume it has been initialized beforehand
@@ -51,30 +51,15 @@ func NewDispatcher(args []string, env []string, filepathBuilder *filepath.Filepa
 
 // GetArgs returns a copy of the slice of strings representing the command line arguments.
 func (d *Dispatcher) GetArgs() []string {
-	return copyStrSlice(d.args)
-}
-
-// FilterArgs returns a copy of the slice of strings representing the command line arguments
-// removing all the instances of each item in the passed "remove" slice. Used to return
-// a slice of the command line args without flags in the "remove" slice.
-func (d *Dispatcher) FilterArgs(remove []string) []string {
-	args := d.GetArgs()
-	for _, r := range remove {
-		args = util.RemoveAllElements(args, r)
-	}
-	return args
+	return util.CopyStrSlice(d.args)
 }
 
 // GetEnv returns a copy of the slice of environment variables.
 func (d *Dispatcher) GetEnv() []string {
-	return copyStrSlice(d.env)
+	return util.CopyStrSlice(d.env)
 }
 
-func copyStrSlice(s []string) []string {
-	c := make([]string, len(s))
-	copy(c, s)
-	return c
-}
+const kubeConfigFlagSetName = "dispatcher-kube-config"
 
 // InitKubeConfigFlags returns the ConfigFlags struct filled in with parsed
 // kube config values parsed from command line arguments. These flag values can
@@ -82,9 +67,7 @@ func copyStrSlice(s []string) []string {
 // match the set used in the regular kubectl binary.
 func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
 
-	kubeConfigFlagSet := pflag.NewFlagSet("dispatcher", pflag.ExitOnError)
-	kubeConfigFlagSet.ParseErrorsWhitelist.UnknownFlags = true
-	kubeConfigFlagSet.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	kubeConfigFlagSet := logging.NewFlagSet(kubeConfigFlagSetName)
 
 	usePersistentConfig := true
 	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
@@ -92,7 +75,7 @@ func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
 
 	// Remove help flags, since these are special-cased in pflag.Parse,
 	// and handled in the dispatcher instead of passed to versioned binary.
-	args := d.FilterArgs([]string{"-h", "--help"})
+	args := util.FilterList(d.GetArgs(), logging.HelpFlags)
 	kubeConfigFlagSet.Parse(args[1:])
 	kubeConfigFlagSet.VisitAll(func(flag *pflag.Flag) {
 		klog.Infof("KubeConfig Flag: --%s=%q", flag.Name, flag.Value)

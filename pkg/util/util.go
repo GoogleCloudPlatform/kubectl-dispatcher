@@ -16,7 +16,16 @@ limitations under the License.
 
 package util
 
-// RemoveAllElements removes all arguments from "s" which match the string "r".
+// FilterArgs returns a copy of "l" with elements from "toRemove" filtered out.
+func FilterList(l []string, rl []string) []string {
+	c := CopyStrSlice(l)
+	for _, r := range rl {
+		c = RemoveAllElements(c, r)
+	}
+	return c
+}
+
+// RemoveAllElements removes all elements from "s" which match the string "r".
 func RemoveAllElements(s []string, r string) []string {
 	for i, rlen := 0, len(s); i < rlen; i++ {
 		j := i - (rlen - len(s))
@@ -25,4 +34,11 @@ func RemoveAllElements(s []string, r string) []string {
 		}
 	}
 	return s
+}
+
+// CopyStrSlice returns a copy of the slice of strings.
+func CopyStrSlice(s []string) []string {
+	c := make([]string, len(s))
+	copy(c, s)
+	return c
 }

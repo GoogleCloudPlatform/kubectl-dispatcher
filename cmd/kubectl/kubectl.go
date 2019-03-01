@@ -17,14 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"os"
 	"syscall"
 
 	"github.com/kubectl-dispatcher/pkg/dispatcher"
 	"github.com/kubectl-dispatcher/pkg/filepath"
-	"github.com/spf13/pflag"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	"github.com/kubectl-dispatcher/pkg/logging"
 	"k8s.io/klog"
 
 	// Import to initialize client auth plugins.
@@ -50,7 +48,7 @@ const defaultVersion = "1.11"
 // filenames with "kubectl.". Example: "kubectl.1.12"
 func main() {
 
-	InitLogging()
+	logging.InitLogging(os.Args[1:])
 	defer klog.Flush()
 
 	// Dispatch() does not return if successful; the current process is overwritten.
@@ -72,20 +70,4 @@ func main() {
 	if err != nil {
 		klog.Errorf("kubectl dispatcher error: problem with Exec: (%v)", err)
 	}
-}
-
-// Initialize klog logging by parsing the log-related flags.
-func InitLogging() {
-	flagSetName := "dispatcher-logs"
-	logFlagSet := flag.NewFlagSet(flagSetName, flag.ExitOnError)
-	klog.InitFlags(logFlagSet)
-	// Only pflags allows us to parse unknown flags.
-	plogFlagSet := pflag.NewFlagSet(flagSetName, pflag.ExitOnError)
-	plogFlagSet.ParseErrorsWhitelist.UnknownFlags = true
-	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	plogFlagSet.AddGoFlagSet(logFlagSet)
-	// Defensive copy of command-line args
-	args := make([]string, len(os.Args[1:]))
-	copy(args, os.Args[1:])
-	plogFlagSet.Parse(args)
 }

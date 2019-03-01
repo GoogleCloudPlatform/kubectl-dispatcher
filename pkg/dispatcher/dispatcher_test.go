@@ -22,43 +22,24 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-func TestGetFilterArgs(t *testing.T) {
+func TestGetArgs(t *testing.T) {
 	tests := []struct {
 		args     []string
 		remove   []string
 		expected []string
 	}{
 		{
-			args:     []string{"foo", "bar"},
-			remove:   []string{},
-			expected: []string{"foo", "bar"},
+			args: []string{"foo", "bar"},
 		},
 		{
-			args:     []string{"foo", "bar"},
-			remove:   []string{"bar"},
-			expected: []string{"foo"},
-		},
-		{
-			args:     []string{"foo", "bar"},
-			remove:   []string{"foo"},
-			expected: []string{"bar"},
-		},
-		{
-			args:     []string{"foo", "bar", "bar"},
-			remove:   []string{"bar"},
-			expected: []string{"foo"},
-		},
-		{
-			args:     []string{},
-			remove:   []string{"bar"},
-			expected: []string{},
+			args: []string{},
 		},
 	}
 	for _, test := range tests {
 		dispatcher := NewDispatcher(test.args, []string{}, nil)
-		actual := dispatcher.FilterArgs(test.remove)
-		if !isStringSliceEqual(test.expected, actual) {
-			t.Errorf("Filter args error: expected (%v), got (%v)", test.expected, actual)
+		actual := dispatcher.GetArgs()
+		if !isStringSliceEqual(test.args, actual) {
+			t.Errorf("Filter args error: expected (%v), got (%v)", test.args, actual)
 		}
 	}
 }
