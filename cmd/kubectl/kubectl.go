@@ -64,15 +64,19 @@ func main() {
 		klog.Warningf("Dispatch error: %v", err)
 	}
 
-	// Dispatch to the default kubectl binary.
-	kubectlDefaultFilepath := filepathBuilder.VersionedFilePath(clientVersion)
+	// Dispatch to the default kubectl binary given by clientVersion.
+	kubectlDefaultFilepath, err := filepathBuilder.VersionedFilePath(clientVersion)
+	if err != nil {
+		klog.Errorf("Error creating default kubectl: (%v)", err)
+		os.Exit(1)
+	}
 	if err := filepathBuilder.ValidateFilepath(kubectlDefaultFilepath); err != nil {
 		klog.Errorf("Error validating default kubectl: %s (%v)", kubectlDefaultFilepath, err)
 		os.Exit(1)
 	}
 
 	klog.Infof("Default kubectl dispatched: %s", kubectlDefaultFilepath)
-	err := syscall.Exec(kubectlDefaultFilepath, os.Args, os.Environ())
+	err = syscall.Exec(kubectlDefaultFilepath, os.Args, os.Environ())
 	if err != nil {
 		klog.Errorf("kubectl dispatcher error: problem with Exec: (%v)", err)
 	}

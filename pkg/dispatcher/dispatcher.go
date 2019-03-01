@@ -72,7 +72,7 @@ func (d *Dispatcher) GetClientVersion() *version.Info {
 
 const kubeConfigFlagSetName = "dispatcher-kube-config"
 
-// InitKubeConfigFlags returns the ConfigFlags struct filled in with parsed
+// InitKubeConfigFlags returns the ConfigFlags struct filled in with
 // kube config values parsed from command line arguments. These flag values can
 // affect the server version query. Therefore, the set of kubeConfigFlags MUST
 // match the set used in the regular kubectl binary.
@@ -122,14 +122,12 @@ func (d *Dispatcher) Dispatch() error {
 	if err != nil {
 		return err
 	}
-	// Ensure the versioned kubectl binary exists.
 	if err := d.filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
 		return err
 	}
 
-	// Delegate to the versioned or default kubectl binary. This overwrites the
-	// current process (by calling execve(2) system call), and it does not return
-	// on success.
+	// Delegate to the versioned kubectl binary. This overwrites the current process
+	// (by calling execve(2) system call), and it does not return on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
 }

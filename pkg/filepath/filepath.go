@@ -56,8 +56,7 @@ type FilepathBuilder struct {
 }
 
 // NewFilepathBuilder encapsulates information necessary to build the full
-// file path of the versioned kubectl binary to execute. NOTE: A nil
-// ServerVersion is acceptable, and it maps to the default kubectl version.
+// file path of the versioned kubectl binary to execute.
 func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.FileInfo, error)) *FilepathBuilder {
 	return &FilepathBuilder{
 		dirGetter:    dirGetter,
@@ -67,8 +66,8 @@ func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.Fil
 
 const kubectlBinaryName = "kubectl"
 
-// VersionedFilePath returns the full absolute file path to the
-// versioned kubectl binary to dispatch to. On error, empty string is returned.
+// VersionedFilePath returns the full absolute file path to the versioned kubectl
+// binary to dispatch to. On error, empty string is returned.
 func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, error) {
 	major, err := util.GetMajorVersion(version)
 	if err != nil {
