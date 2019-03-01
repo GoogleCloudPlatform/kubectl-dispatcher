@@ -68,34 +68,19 @@ func NewFilepathBuilder(dirGetter DirectoryGetter, filestat func(string) (os.Fil
 	}
 }
 
-// currentDir returns the full file path to the directory for storing the
-// versioned kubectl binaries (e.g. kubectl.1.12, kubectl.default).
-func (c *FilepathBuilder) currentDir() string {
-	currentDirectory := "" // Use empty directory upon error.
-	if c.dirGetter != nil {
-		dir, err := c.dirGetter.CurrentDirectory()
-		if err != nil {
-			klog.Warningf("kubectl dispatcher current directory error: (%v)", err)
-		} else {
-			currentDirectory = dir
-		}
-	} else {
-		klog.Warningf("directory getter is nil; using empty current directory")
-	}
-	return currentDirectory
-}
+const kubectlBinaryName = "kubectl"
 
 // VersionedFilePath returns the full absolute file path to the
 // versioned kubectl binary to dispatch to. On error, empty string is returned.
-func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string {
+func (c *FilepathBuilder) VersionedFilePath(version *version.Info) string {
 	kubectlFilename := ""
-	if serverVersion != nil {
-		majorVersion, err := util.GetMajorVersion(serverVersion)
+	if version != nil {
+		major, err := util.GetMajorVersion(version)
 		if err == nil {
-			minorVersion, err := util.GetMinorVersion(serverVersion)
+			minor, err := util.GetMinorVersion(version)
 			if err == nil {
 				// Example: major: "1", minor: "12" -> "kubectl.1.12"
-				kubectlFilename, err = createKubectlBinaryFilename(majorVersion, minorVersion)
+				kubectlFilename = fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
 			} else {
 				klog.Warningf("Error generating minor version number: (%v)", err)
 			}
@@ -105,7 +90,11 @@ func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string 
 	} else {
 		klog.Warningf("Server version is nil while generating versioned file path")
 	}
-	return filepath.Join(c.currentDir(), kubectlFilename)
+	currentDir := ""
+	if c.dirGetter != nil {
+		currentDir, _ = c.dirGetter.CurrentDirectory()
+	}
+	return filepath.Join(currentDir, kubectlFilename)
 }
 
 func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
@@ -113,13 +102,4 @@ func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
 		return err
 	}
 	return nil
-}
-
-const kubectlBinaryName = "kubectl"
-
-// NOTE: versioned kubectl filenames must NOT start with "kubectl-", since
-// that is reserved for plugins. Therefore, we prefix versioned kubectl
-// filenames with "kubectl.". Example: "kubectl.1.12"
-func createKubectlBinaryFilename(major string, minor string) (string, error) {
-	return fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor), nil
 }

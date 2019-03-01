@@ -94,7 +94,7 @@ func TestVersionedFilepath(t *testing.T) {
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
 			filePath:  "/foo/bar/kubectl.1.12",
 		},
-		// Nil server version maps to default kubectl
+		// Nil server version returns directory.
 		{
 			version:   nil,
 			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
@@ -142,10 +142,10 @@ func TestVersionedFilepath(t *testing.T) {
 			dirGetter: nil,
 			filePath:  "kubectl.1.9",
 		},
-		// // Error in retrieving current directory defaults to no directory
+		// Error in retrieving current directory defaults to no directory
 		{
 			version:   createServerVersion("1", "9"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: fmt.Errorf("Forced error")},
+			dirGetter: FakeDirGetter{dir: "", err: fmt.Errorf("Forced error")},
 			filePath:  "kubectl.1.9",
 		},
 	}

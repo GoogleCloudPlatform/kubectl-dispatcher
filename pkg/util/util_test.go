@@ -160,6 +160,19 @@ func TestVersionMatch(t *testing.T) {
 			expectEqual: false,
 		},
 		{
+			v1: &version.Info{
+				Major:      "",
+				Minor:      "",
+				GitVersion: "",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
 			v1: nil,
 			v2: &version.Info{
 				Major:      "1",
