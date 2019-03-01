@@ -95,96 +95,6 @@ func TestGetClientVersion(t *testing.T) {
 	}
 }
 
-func TestVersionMatch(t *testing.T) {
-	tests := []struct {
-		v1          *version.Info
-		v2          *version.Info
-		expectEqual bool
-	}{
-		{
-			v1: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			v2: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			expectEqual: true,
-		},
-		{
-			v1: &version.Info{
-				Major:      "1",
-				Minor:      "10",
-				GitVersion: "v1.10.7",
-			},
-			v2: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			expectEqual: false,
-		},
-		{
-			v1: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			v2: &version.Info{
-				Major:      "1",
-				Minor:      "11+",
-				GitVersion: "v1.11.7",
-			},
-			expectEqual: true,
-		},
-		{
-			v1: &version.Info{
-				Major:      "2",
-				Minor:      "11",
-				GitVersion: "v2.11.7",
-			},
-			v2: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			expectEqual: false,
-		},
-		{
-			v1: nil,
-			v2: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			expectEqual: false,
-		},
-		{
-			v1: &version.Info{
-				Major:      "1",
-				Minor:      "11",
-				GitVersion: "v1.11.7",
-			},
-			v2:          nil,
-			expectEqual: false,
-		},
-		{
-			v1:          nil,
-			v2:          nil,
-			expectEqual: false,
-		},
-	}
-	for _, test := range tests {
-		actual := versionMatch(test.v1, test.v2)
-		if test.expectEqual != actual {
-			t.Errorf("VersionMatch error: expected (%t), got (%t) for (%+v)/(%+v)", test.expectEqual, actual, test.v1, test.v2)
-		}
-	}
-}
-
 func TestInitKubeConfigFlags(t *testing.T) {
 	tests := []struct {
 		args  map[string]string
@@ -221,7 +131,7 @@ func TestInitKubeConfigFlags(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, clientVersion, nil)
+		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, nil, nil)
 		expected := createConfigFlags(test.args)
 		actual := dispatcher.InitKubeConfigFlags()
 		compareConfigFlags(t, expected, actual)

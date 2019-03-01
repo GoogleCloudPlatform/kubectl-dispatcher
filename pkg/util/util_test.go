@@ -18,9 +18,11 @@ package util
 
 import (
 	"testing"
+
+	"k8s.io/apimachinery/pkg/version"
 )
 
-func TestRemoveArg(t *testing.T) {
+func TestFilterList(t *testing.T) {
 	tests := []struct {
 		args     []string
 		toRemove []string
@@ -84,4 +86,107 @@ func slicesEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func TestVersionMatch(t *testing.T) {
+	tests := []struct {
+		v1          *version.Info
+		v2          *version.Info
+		expectEqual bool
+	}{
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: true,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "10",
+				GitVersion: "v1.10.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11+",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: true,
+		},
+		{
+			v1: &version.Info{
+				Major:      "2",
+				Minor:      "11",
+				GitVersion: "v2.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: &version.Info{
+				Major:      "foo",
+				Minor:      "bar",
+				GitVersion: "v2.11.7",
+			},
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: nil,
+			v2: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			expectEqual: false,
+		},
+		{
+			v1: &version.Info{
+				Major:      "1",
+				Minor:      "11",
+				GitVersion: "v1.11.7",
+			},
+			v2:          nil,
+			expectEqual: false,
+		},
+		{
+			v1:          nil,
+			v2:          nil,
+			expectEqual: false,
+		},
+	}
+	for _, test := range tests {
+		actual := VersionMatch(test.v1, test.v2)
+		if test.expectEqual != actual {
+			t.Errorf("VersionMatch error: expected (%t), got (%t) for (%+v)/(%+v)", test.expectEqual, actual, test.v1, test.v2)
+		}
+	}
 }

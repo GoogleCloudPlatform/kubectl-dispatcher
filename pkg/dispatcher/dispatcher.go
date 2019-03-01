@@ -114,7 +114,7 @@ func (d *Dispatcher) Dispatch() error {
 	}
 	klog.Infof("Server Version: %s", serverVersion.GitVersion)
 	klog.Infof("Client Version: %s", d.GetClientVersion().GitVersion)
-	if versionMatch(d.GetClientVersion(), serverVersion) {
+	if util.VersionMatch(d.GetClientVersion(), serverVersion) {
 		return fmt.Errorf("Client/Server version match--fall through to default")
 	}
 
@@ -129,33 +129,4 @@ func (d *Dispatcher) Dispatch() error {
 	// on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
-}
-
-// versionMatch returns true if the Major and Minor versions match
-// for the passed version infos v1 and v2. Examples:
-//   1.11.7 == 1.11.9
-//   1.11.7 != 1.10.7
-func versionMatch(v1 *version.Info, v2 *version.Info) bool {
-	if v1 != nil && v2 != nil {
-		major1, err := filepath.GetMajorVersion(v1)
-		if err != nil {
-			return false
-		}
-		major2, err := filepath.GetMajorVersion(v2)
-		if err != nil {
-			return false
-		}
-		minor1, err := filepath.GetMinorVersion(v1)
-		if err != nil {
-			return false
-		}
-		minor2, err := filepath.GetMinorVersion(v2)
-		if err != nil {
-			return false
-		}
-		if major1 == major2 && minor1 == minor2 {
-			return true
-		}
-	}
-	return false
 }

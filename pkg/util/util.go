@@ -16,6 +16,15 @@ limitations under the License.
 
 package util
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"unicode"
+
+	"k8s.io/apimachinery/pkg/version"
+)
+
 // FilterArgs returns a copy of "l" with elements from "toRemove" filtered out.
 func FilterList(l []string, rl []string) []string {
 	c := CopyStrSlice(l)
@@ -41,4 +50,92 @@ func CopyStrSlice(s []string) []string {
 	c := make([]string, len(s))
 	copy(c, s)
 	return c
+}
+
+// versionMatch returns true if the Major and Minor versions match
+// for the passed version infos v1 and v2. Examples:
+//   1.11.7 == 1.11.9
+//   1.11.7 != 1.10.7
+func VersionMatch(v1 *version.Info, v2 *version.Info) bool {
+	if v1 != nil && v2 != nil {
+		major1, err := GetMajorVersion(v1)
+		if err != nil {
+			return false
+		}
+		major2, err := GetMajorVersion(v2)
+		if err != nil {
+			return false
+		}
+		minor1, err := GetMinorVersion(v1)
+		if err != nil {
+			return false
+		}
+		minor2, err := GetMinorVersion(v2)
+		if err != nil {
+			return false
+		}
+		if major1 == major2 && minor1 == minor2 {
+			return true
+		}
+	}
+	return false
+}
+
+func GetMajorVersion(serverVersion *version.Info) (string, error) {
+	if serverVersion == nil {
+		return "", fmt.Errorf("server version is nil")
+	}
+	majorStr, err := normalizeVersionStr(serverVersion.Major)
+	if err != nil {
+		return "", err
+	}
+	if !isPositiveInteger(majorStr) {
+		return "", fmt.Errorf("Bad major version string: %s", majorStr)
+	}
+	return majorStr, nil
+}
+
+func GetMinorVersion(serverVersion *version.Info) (string, error) {
+	if serverVersion == nil {
+		return "", fmt.Errorf("server version is nil")
+	}
+	minorStr, err := normalizeVersionStr(serverVersion.Minor)
+	if err != nil {
+		return "", err
+	}
+	if !isPositiveInteger(minorStr) {
+		return "", fmt.Errorf("Bad minor version string: %s", minorStr)
+	}
+	return minorStr, nil
+}
+
+// Example:
+//   9+ -> 9
+//   9.3 -> 9
+//   9.1-gke -> 9
+func normalizeVersionStr(majorMinor string) (string, error) {
+	trimmed := strings.TrimSpace(majorMinor)
+	if trimmed == "" {
+		return "", fmt.Errorf("Empty server version major/minor string")
+	}
+	versionStr := ""
+	for _, c := range trimmed {
+		if unicode.IsDigit(c) {
+			versionStr += string(c)
+		} else {
+			break
+		}
+	}
+	if versionStr == "" {
+		return "", fmt.Errorf("Bad server version major/minor string (%s)", trimmed)
+	}
+	return versionStr, nil
+}
+
+func isPositiveInteger(str string) bool {
+	i, err := strconv.Atoi(str)
+	if err != nil || i <= 0 { // NOTE: zero is also not allowed
+		return false
+	}
+	return true
 }

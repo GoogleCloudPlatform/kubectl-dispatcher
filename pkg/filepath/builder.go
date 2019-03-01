@@ -20,10 +20,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"unicode"
 
+	"github.com/kubectl-dispatcher/pkg/util"
 	"k8s.io/apimachinery/pkg/version"
 
 	// klog calls in this file assume it has been initialized beforehand
@@ -92,9 +90,9 @@ func (c *FilepathBuilder) currentDir() string {
 func (c *FilepathBuilder) VersionedFilePath(serverVersion *version.Info) string {
 	kubectlFilename := ""
 	if serverVersion != nil {
-		majorVersion, err := GetMajorVersion(serverVersion)
+		majorVersion, err := util.GetMajorVersion(serverVersion)
 		if err == nil {
-			minorVersion, err := GetMinorVersion(serverVersion)
+			minorVersion, err := util.GetMinorVersion(serverVersion)
 			if err == nil {
 				// Example: major: "1", minor: "12" -> "kubectl.1.12"
 				kubectlFilename, err = createKubectlBinaryFilename(majorVersion, minorVersion)
@@ -117,34 +115,6 @@ func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
 	return nil
 }
 
-func GetMajorVersion(serverVersion *version.Info) (string, error) {
-	if serverVersion == nil {
-		return "", fmt.Errorf("server version is nil")
-	}
-	majorStr, err := normalizeVersionStr(serverVersion.Major)
-	if err != nil {
-		return "", err
-	}
-	if !isPositiveInteger(majorStr) {
-		return "", fmt.Errorf("Bad major version string: %s", majorStr)
-	}
-	return majorStr, nil
-}
-
-func GetMinorVersion(serverVersion *version.Info) (string, error) {
-	if serverVersion == nil {
-		return "", fmt.Errorf("server version is nil")
-	}
-	minorStr, err := normalizeVersionStr(serverVersion.Minor)
-	if err != nil {
-		return "", err
-	}
-	if !isPositiveInteger(minorStr) {
-		return "", fmt.Errorf("Bad minor version string: %s", minorStr)
-	}
-	return minorStr, nil
-}
-
 const kubectlBinaryName = "kubectl"
 
 // NOTE: versioned kubectl filenames must NOT start with "kubectl-", since
@@ -152,35 +122,4 @@ const kubectlBinaryName = "kubectl"
 // filenames with "kubectl.". Example: "kubectl.1.12"
 func createKubectlBinaryFilename(major string, minor string) (string, error) {
 	return fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor), nil
-}
-
-// Example:
-//   9+ -> 9
-//   9.3 -> 9
-//   9.1-gke -> 9
-func normalizeVersionStr(majorMinor string) (string, error) {
-	trimmed := strings.TrimSpace(majorMinor)
-	if trimmed == "" {
-		return "", fmt.Errorf("Empty server version major/minor string")
-	}
-	versionStr := ""
-	for _, c := range trimmed {
-		if unicode.IsDigit(c) {
-			versionStr += string(c)
-		} else {
-			break
-		}
-	}
-	if versionStr == "" {
-		return "", fmt.Errorf("Bad server version major/minor string (%s)", trimmed)
-	}
-	return versionStr, nil
-}
-
-func isPositiveInteger(str string) bool {
-	i, err := strconv.Atoi(str)
-	if err != nil || i <= 0 { // NOTE: zero is also not allowed
-		return false
-	}
-	return true
 }
