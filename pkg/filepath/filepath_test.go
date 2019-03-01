@@ -50,110 +50,137 @@ func createServerVersion(major string, minor string) *version.Info {
 
 func TestVersionedFilepath(t *testing.T) {
 	tests := []struct {
-		version   *version.Info
-		dirGetter DirectoryGetter
-		filePath  string
+		version     *version.Info
+		dirGetter   DirectoryGetter
+		filePath    string
+		expectError bool
 	}{
 		{
-			version:   createServerVersion("1", "9"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			version:     createServerVersion("1", "9"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("\t1", " 9\n"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			version:     createServerVersion("\t1", " 9\n"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("1", "9+"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			version:     createServerVersion("1", "9+"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("1", "9.9-gke.1"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.9",
+			version:     createServerVersion("1", "9.9-gke.1"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("1", "12"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			version:     createServerVersion("1", "12"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.12",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("\t1", " 12\n"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			version:     createServerVersion("\t1", " 12\n"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.12",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("1", "12+"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			version:     createServerVersion("1", "12+"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.12",
+			expectError: false,
 		},
 		{
-			version:   createServerVersion("1", "12.3-gke.1"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar/kubectl.1.12",
+			version:     createServerVersion("1", "12.3-gke.1"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.12",
+			expectError: false,
 		},
-		// Nil server version returns directory.
+		// Nil server version causes error
 		{
-			version:   nil,
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     nil,
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Non-digit major version not allowed
 		{
-			version:   createServerVersion("k", "9"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion("k", "9"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Non-digit minor version not allowed
 		{
-			version:   createServerVersion("1", "s"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion("1", "s"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Empty/space major version not allowed
 		{
-			version:   createServerVersion(" \t", "9"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion(" \t", "9"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Empty/space minor version not allowed
 		{
-			version:   createServerVersion("1", "\n"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion("1", "\n"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Zero as major version not allowed
 		{
-			version:   createServerVersion("0", "9"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion("0", "9"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
 		// Zero as minor version not allowed
 		{
-			version:   createServerVersion("1", "0"),
-			dirGetter: FakeDirGetter{dir: "/foo/bar", err: nil},
-			filePath:  "/foo/bar",
+			version:     createServerVersion("1", "0"),
+			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			filePath:    "",
+			expectError: true,
 		},
-		// Nil directory getter defaults to no directory
+		// Nil directory getter returns error.
 		{
-			version:   createServerVersion("1", "9"),
-			dirGetter: nil,
-			filePath:  "kubectl.1.9",
+			version:     createServerVersion("1", "9"),
+			dirGetter:   nil,
+			filePath:    "",
+			expectError: true,
 		},
-		// Error in retrieving current directory defaults to no directory
+		// Error forced in retrieving current directory.
 		{
-			version:   createServerVersion("1", "9"),
-			dirGetter: FakeDirGetter{dir: "", err: fmt.Errorf("Forced error")},
-			filePath:  "kubectl.1.9",
+			version:     createServerVersion("1", "9"),
+			dirGetter:   FakeDirGetter{dir: "", err: fmt.Errorf("Forced error")},
+			filePath:    "",
+			expectError: true,
 		},
 	}
 	for _, test := range tests {
 		builder := NewFilepathBuilder(test.dirGetter, nil)
-		filePath := builder.VersionedFilePath(test.version)
-		if filePath != test.filePath {
-			t.Errorf("Expected versioned file path (%s), got (%s)", test.filePath, filePath)
+		filePath, err := builder.VersionedFilePath(test.version)
+		if !test.expectError {
+			if err != nil {
+				t.Errorf("Unexpected error: (%v)", err)
+			} else {
+				if filePath != test.filePath {
+					t.Errorf("Expected versioned file path (%s), got (%s)", test.filePath, filePath)
+				}
+			}
+		}
+		if test.expectError && (err == nil) {
+			t.Errorf("Expected error; received none")
 		}
 	}
 }

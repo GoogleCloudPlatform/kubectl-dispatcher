@@ -118,7 +118,10 @@ func (d *Dispatcher) Dispatch() error {
 		return fmt.Errorf("Client/Server version match--fall through to default")
 	}
 
-	kubectlFilepath := d.filepathBuilder.VersionedFilePath(serverVersion)
+	kubectlFilepath, err := d.filepathBuilder.VersionedFilePath(serverVersion)
+	if err != nil {
+		return err
+	}
 	// Ensure the versioned kubectl binary exists.
 	if err := d.filepathBuilder.ValidateFilepath(kubectlFilepath); err != nil {
 		return err

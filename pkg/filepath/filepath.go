@@ -23,9 +23,6 @@ import (
 
 	"github.com/kubectl-dispatcher/pkg/util"
 	"k8s.io/apimachinery/pkg/version"
-
-	// klog calls in this file assume it has been initialized beforehand
-	"k8s.io/klog"
 )
 
 // DirectoryGetter implements a single function returning the "current directory".
@@ -72,29 +69,26 @@ const kubectlBinaryName = "kubectl"
 
 // VersionedFilePath returns the full absolute file path to the
 // versioned kubectl binary to dispatch to. On error, empty string is returned.
-func (c *FilepathBuilder) VersionedFilePath(version *version.Info) string {
-	kubectlFilename := ""
-	if version != nil {
-		major, err := util.GetMajorVersion(version)
-		if err == nil {
-			minor, err := util.GetMinorVersion(version)
-			if err == nil {
-				// Example: major: "1", minor: "12" -> "kubectl.1.12"
-				kubectlFilename = fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
-			} else {
-				klog.Warningf("Error generating minor version number: (%v)", err)
-			}
-		} else {
-			klog.Warningf("Error generating major version number: (%v)", err)
-		}
-	} else {
-		klog.Warningf("Server version is nil while generating versioned file path")
+func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, error) {
+	major, err := util.GetMajorVersion(version)
+	if err != nil {
+		return "", err
 	}
-	currentDir := ""
-	if c.dirGetter != nil {
-		currentDir, _ = c.dirGetter.CurrentDirectory()
+	minor, err := util.GetMinorVersion(version)
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(currentDir, kubectlFilename)
+	// TODO(seans): Take care of windows name (.exe suffix)
+	// Example: major: "1", minor: "12" -> "kubectl.1.12"
+	kubectlFilename := fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
+	if c.dirGetter == nil {
+		return "", fmt.Errorf("VersionedFilePath: directory getter is nil")
+	}
+	currentDir, err := c.dirGetter.CurrentDirectory()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(currentDir, kubectlFilename), nil
 }
 
 func (c *FilepathBuilder) ValidateFilepath(filepath string) error {
