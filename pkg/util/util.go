@@ -81,6 +81,7 @@ func VersionMatch(v1 *version.Info, v2 *version.Info) bool {
 	return false
 }
 
+// TODO(seans): return an integer instead of a string.
 func GetMajorVersion(serverVersion *version.Info) (string, error) {
 	if serverVersion == nil {
 		return "", fmt.Errorf("server version is nil")

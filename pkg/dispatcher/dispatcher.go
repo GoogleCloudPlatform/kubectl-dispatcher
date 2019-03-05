@@ -80,8 +80,8 @@ func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
 
 	kubeConfigFlagSet := logging.NewFlagSet(kubeConfigFlagSetName)
 
-	usePersistentConfig := true
-	kubeConfigFlags := genericclioptions.NewConfigFlags(usePersistentConfig)
+	unusedParameter := true // Could be either true or false
+	kubeConfigFlags := genericclioptions.NewConfigFlags(unusedParameter)
 	kubeConfigFlags.AddFlags(kubeConfigFlagSet)
 
 	// Remove help flags, since these are special-cased in pflag.Parse,
@@ -115,6 +115,8 @@ func (d *Dispatcher) Dispatch() error {
 	klog.Infof("Server Version: %s", serverVersion.GitVersion)
 	klog.Infof("Client Version: %s", d.GetClientVersion().GitVersion)
 	if util.VersionMatch(d.GetClientVersion(), serverVersion) {
+		// TODO(seans): Consider changing to return a bool as well as error, since
+		// this isn't really an error.
 		return fmt.Errorf("Client/Server version match--fall through to default")
 	}
 

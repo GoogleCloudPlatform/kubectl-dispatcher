@@ -79,6 +79,7 @@ func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, erro
 	}
 	// TODO(seans): Take care of windows name (.exe suffix)
 	// Example: major: "1", minor: "12" -> "kubectl.1.12"
+	// TODO(seans): Should be %d for major/minor.
 	kubectlFilename := fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
 	if c.dirGetter == nil {
 		return "", fmt.Errorf("VersionedFilePath: directory getter is nil")
