@@ -31,7 +31,8 @@ var HelpFlags = []string{"-h", "--help"}
 
 // Initialize klog logging by parsing the log-related flags.
 func InitLogging(args []string) {
-	logFlagSet := flag.NewFlagSet(loggingFlagSetName, flag.ExitOnError)
+	// IMPORTANT: If there is an error parsing flags--continue.
+	logFlagSet := flag.NewFlagSet(loggingFlagSetName, flag.ContinueOnError)
 	klog.InitFlags(logFlagSet)
 	// Only pflags allows us to parse unknown flags.
 	plogFlagSet := NewFlagSet(loggingFlagSetName)
@@ -43,6 +44,7 @@ func InitLogging(args []string) {
 
 // NewFlagSet returns a new pflag.Flag set with several parameters pre-set.
 func NewFlagSet(name string) *pflag.FlagSet {
+	// IMPORTANT: If there is an error parsing flags--continue.
 	flagSet := pflag.NewFlagSet(loggingFlagSetName, pflag.ContinueOnError)
 	flagSet.ParseErrorsWhitelist.UnknownFlags = true
 	flagSet.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
