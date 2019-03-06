@@ -133,7 +133,10 @@ func TestInitKubeConfigFlags(t *testing.T) {
 	for _, test := range tests {
 		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, nil, nil)
 		expected := createConfigFlags(test.args)
-		actual := dispatcher.InitKubeConfigFlags()
+		actual, err := dispatcher.InitKubeConfigFlags()
+		if err != nil {
+			t.Errorf("Unexpected error in InitKubeConfigFlags(): %v", err)
+		}
 		compareConfigFlags(t, expected, actual)
 	}
 }

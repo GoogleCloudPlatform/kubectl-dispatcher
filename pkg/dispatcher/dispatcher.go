@@ -76,7 +76,7 @@ const kubeConfigFlagSetName = "dispatcher-kube-config"
 // kube config values parsed from command line arguments. These flag values can
 // affect the server version query. Therefore, the set of kubeConfigFlags MUST
 // match the set used in the regular kubectl binary.
-func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
+func (d *Dispatcher) InitKubeConfigFlags() (*genericclioptions.ConfigFlags, error) {
 
 	kubeConfigFlagSet := logging.NewFlagSet(kubeConfigFlagSetName)
 
@@ -87,12 +87,14 @@ func (d *Dispatcher) InitKubeConfigFlags() *genericclioptions.ConfigFlags {
 	// Remove help flags, since these are special-cased in pflag.Parse,
 	// and handled in the dispatcher instead of passed to versioned binary.
 	args := util.FilterList(d.GetArgs(), logging.HelpFlags)
-	kubeConfigFlagSet.Parse(args[1:])
+	if err := kubeConfigFlagSet.Parse(args[1:]); err != nil {
+		return nil, err
+	}
 	kubeConfigFlagSet.VisitAll(func(flag *pflag.Flag) {
 		klog.Infof("KubeConfig Flag: --%s=%q", flag.Name, flag.Value)
 	})
 
-	return kubeConfigFlags
+	return kubeConfigFlags, nil
 }
 
 // Dispatch attempts to execute a matching version of kubectl based on the
@@ -104,7 +106,10 @@ func (d *Dispatcher) Dispatch() error {
 	// from this version.
 	// Example:
 	//   serverVersion=1.11 -> /home/seans/go/bin/kubectl.1.11
-	kubeConfigFlags := d.InitKubeConfigFlags()
+	kubeConfigFlags, err := d.InitKubeConfigFlags()
+	if err != nil {
+		return err
+	}
 	svclient := client.NewServerVersionClient(kubeConfigFlags)
 	svclient.SetRequestTimeout(requestTimeout)
 	svclient.SetCacheMaxAge(cacheMaxAge)

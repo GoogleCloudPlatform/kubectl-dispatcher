@@ -43,7 +43,7 @@ func InitLogging(args []string) {
 
 // NewFlagSet returns a new pflag.Flag set with several parameters pre-set.
 func NewFlagSet(name string) *pflag.FlagSet {
-	flagSet := pflag.NewFlagSet(loggingFlagSetName, pflag.ExitOnError)
+	flagSet := pflag.NewFlagSet(loggingFlagSetName, pflag.ContinueOnError)
 	flagSet.ParseErrorsWhitelist.UnknownFlags = true
 	flagSet.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	return flagSet
