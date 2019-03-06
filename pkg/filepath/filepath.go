@@ -20,14 +20,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/kubectl-dispatcher/pkg/util"
 	"k8s.io/apimachinery/pkg/version"
 )
 
-// DirectoryGetter implements a single function returning the "current directory".
+// DirectoryGetter wraps a few operating sytem specific methods.
 type DirectoryGetter interface {
 	CurrentDirectory() (string, error)
+	GetOS() string
 }
 
 // ExeDirGetter implements the DirectoryGetter interface.
@@ -45,6 +47,12 @@ func (e *ExeDirGetter) CurrentDirectory() (string, error) {
 		return "", err
 	}
 	return filepath.Dir(abs), nil
+}
+
+// Get OS returns the current operating system as a string. There should
+// be three: linux, darwin, and windows.
+func (e *ExeDirGetter) GetOS() string {
+	return runtime.GOOS
 }
 
 // FilepathBuilder encapsulates the data and functionality to build the full
@@ -69,6 +77,14 @@ const kubectlBinaryName = "kubectl"
 // VersionedFilePath returns the full absolute file path to the versioned kubectl
 // binary to dispatch to. On error, empty string is returned.
 func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, error) {
+	// Initial parameter validation.
+	if c.dirGetter == nil {
+		return "", fmt.Errorf("VersionedFilePath: directory getter is nil")
+	}
+	if c.dirGetter == nil {
+		return "", fmt.Errorf("VersionedFilePath: version is nil")
+	}
+	// Get the major and minor versions.
 	major, err := util.GetMajorVersion(version)
 	if err != nil {
 		return "", err
@@ -77,12 +93,11 @@ func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, erro
 	if err != nil {
 		return "", err
 	}
-	// TODO(seans): Take care of windows name (.exe suffix)
 	// Example: major: "1", minor: "12" -> "kubectl.1.12"
 	// TODO(seans): Should be %d for major/minor.
 	kubectlFilename := fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
-	if c.dirGetter == nil {
-		return "", fmt.Errorf("VersionedFilePath: directory getter is nil")
+	if c.dirGetter.GetOS() == "windows" {
+		kubectlFilename += ".exe"
 	}
 	currentDir, err := c.dirGetter.CurrentDirectory()
 	if err != nil {

@@ -25,6 +25,7 @@ import (
 )
 
 type FakeDirGetter struct {
+	os  string
 	dir string
 	err error
 }
@@ -33,11 +34,8 @@ func (f FakeDirGetter) CurrentDirectory() (string, error) {
 	return f.dir, f.err
 }
 
-func createFakeDirGetter(dir string, err error) FakeDirGetter {
-	return FakeDirGetter{
-		dir: dir,
-		err: err,
-	}
+func (f FakeDirGetter) GetOS() string {
+	return f.os
 }
 
 func createServerVersion(major string, minor string) *version.Info {
@@ -57,98 +55,110 @@ func TestVersionedFilepath(t *testing.T) {
 	}{
 		{
 			version:     createServerVersion("1", "9"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.9",
 			expectError: false,
 		},
 		{
+			version:     createServerVersion("1", "9"),
+			dirGetter:   FakeDirGetter{os: "darwin", dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9",
+			expectError: false,
+		},
+		{
+			version:     createServerVersion("1", "9"),
+			dirGetter:   FakeDirGetter{os: "windows", dir: "/foo/bar", err: nil},
+			filePath:    "/foo/bar/kubectl.1.9.exe",
+			expectError: false,
+		},
+		{
 			version:     createServerVersion("\t1", " 9\n"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.9",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("1", "9+"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.9",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("1", "9.9-gke.1"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.9",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("1", "12"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.12",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("\t1", " 12\n"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.12",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("1", "12+"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.12",
 			expectError: false,
 		},
 		{
 			version:     createServerVersion("1", "12.3-gke.1"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.12",
 			expectError: false,
 		},
 		// Nil server version causes error
 		{
 			version:     nil,
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Non-digit major version not allowed
 		{
 			version:     createServerVersion("k", "9"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Non-digit minor version not allowed
 		{
 			version:     createServerVersion("1", "s"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Empty/space major version not allowed
 		{
 			version:     createServerVersion(" \t", "9"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Empty/space minor version not allowed
 		{
 			version:     createServerVersion("1", "\n"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Zero as major version not allowed
 		{
 			version:     createServerVersion("0", "9"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
 		// Zero as minor version not allowed
 		{
 			version:     createServerVersion("1", "0"),
-			dirGetter:   FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "",
 			expectError: true,
 		},
@@ -162,7 +172,7 @@ func TestVersionedFilepath(t *testing.T) {
 		// Error forced in retrieving current directory.
 		{
 			version:     createServerVersion("1", "9"),
-			dirGetter:   FakeDirGetter{dir: "", err: fmt.Errorf("Forced error")},
+			dirGetter:   FakeDirGetter{os: "linux", dir: "", err: fmt.Errorf("Forced error")},
 			filePath:    "",
 			expectError: true,
 		},
@@ -200,12 +210,12 @@ func TestValidateFilepath(t *testing.T) {
 		expectError  bool
 	}{
 		{
-			dirGetter:    FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:    FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			validateFunc: FilepathIsValid,
 			expectError:  false,
 		},
 		{
-			dirGetter:    FakeDirGetter{dir: "/foo/bar", err: nil},
+			dirGetter:    FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			validateFunc: FilepathIsNotValid,
 			expectError:  true,
 		},
