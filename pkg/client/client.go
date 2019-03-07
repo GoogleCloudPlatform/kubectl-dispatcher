@@ -19,6 +19,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"time"
 
 	"k8s.io/apimachinery/pkg/version"
@@ -89,8 +90,11 @@ func (c *ServerVersionClient) ServerVersion() (*version.Info, error) {
 	return &info, nil
 }
 
-const cacheControlHeader = "Cache-Control"
-const serverVersionPath = "/version"
+const (
+	userAgentHeader    = "User-Agent"
+	cacheControlHeader = "Cache-Control"
+	serverVersionPath  = "/version"
+)
 
 func (c *ServerVersionClient) createRequest() (*restclient.Request, error) {
 	if c.delegate == nil {
@@ -101,8 +105,20 @@ func (c *ServerVersionClient) createRequest() (*restclient.Request, error) {
 		c.delegate = discoveryClient.RESTClient()
 	}
 	request := c.delegate.Get()
+	request.SetHeader(userAgentHeader, c.getUserAgent())
 	request.SetHeader(cacheControlHeader, fmt.Sprintf("max-age=%d", c.GetCacheMaxAge()))
 	request.Timeout(c.GetRequestTimeout())
 	request.AbsPath(serverVersionPath)
 	return request, nil
+}
+
+const (
+	dispatcherVersion   = "1.0"
+	dispatcherUserAgent = "kubectl-dispatcher/v%s (%s/%s)"
+)
+
+func (c *ServerVersionClient) getUserAgent() string {
+	os := runtime.GOOS
+	arch := runtime.GOARCH
+	return fmt.Sprintf(dispatcherUserAgent, dispatcherVersion, os, arch)
 }
