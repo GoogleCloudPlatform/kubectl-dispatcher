@@ -81,33 +81,34 @@ func VersionMatch(v1 *version.Info, v2 *version.Info) bool {
 	return false
 }
 
-// TODO(seans): return an integer instead of a string.
-func GetMajorVersion(serverVersion *version.Info) (string, error) {
+func GetMajorVersion(serverVersion *version.Info) (int, error) {
 	if serverVersion == nil {
-		return "", fmt.Errorf("server version is nil")
+		return -1, fmt.Errorf("server version is nil")
 	}
 	majorStr, err := normalizeVersionStr(serverVersion.Major)
 	if err != nil {
-		return "", err
+		return -1, err
 	}
-	if !isPositiveInteger(majorStr) {
-		return "", fmt.Errorf("Bad major version string: %s", majorStr)
+	major, err := strconv.Atoi(majorStr)
+	if err != nil || major <= 0 { // NOTE: zero is also not allowed
+		return -1, fmt.Errorf("Bad major version string: %v", err)
 	}
-	return majorStr, nil
+	return major, nil
 }
 
-func GetMinorVersion(serverVersion *version.Info) (string, error) {
+func GetMinorVersion(serverVersion *version.Info) (int, error) {
 	if serverVersion == nil {
-		return "", fmt.Errorf("server version is nil")
+		return -1, fmt.Errorf("server version is nil")
 	}
 	minorStr, err := normalizeVersionStr(serverVersion.Minor)
 	if err != nil {
-		return "", err
+		return -1, err
 	}
-	if !isPositiveInteger(minorStr) {
-		return "", fmt.Errorf("Bad minor version string: %s", minorStr)
+	minor, err := strconv.Atoi(minorStr)
+	if err != nil || minor <= 0 { // NOTE: zero is also not allowed
+		return -1, fmt.Errorf("Bad minor version string: %v", err)
 	}
-	return minorStr, nil
+	return minor, nil
 }
 
 // Example:
@@ -131,12 +132,4 @@ func normalizeVersionStr(majorMinor string) (string, error) {
 		return "", fmt.Errorf("Bad server version major/minor string (%s)", trimmed)
 	}
 	return versionStr, nil
-}
-
-func isPositiveInteger(str string) bool {
-	i, err := strconv.Atoi(str)
-	if err != nil || i <= 0 { // NOTE: zero is also not allowed
-		return false
-	}
-	return true
 }

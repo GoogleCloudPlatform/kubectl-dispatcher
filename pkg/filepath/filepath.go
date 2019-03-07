@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 )
 
+const windowsOS = "windows"
+
 // DirectoryGetter wraps a few operating sytem specific methods.
 type DirectoryGetter interface {
 	CurrentDirectory() (string, error)
@@ -50,7 +52,7 @@ func (e *ExeDirGetter) CurrentDirectory() (string, error) {
 }
 
 // Get OS returns the current operating system as a string. There should
-// be three: linux, darwin, and windows.
+// be three: "linux", "darwin", and "windows".
 func (e *ExeDirGetter) GetOS() string {
 	return runtime.GOOS
 }
@@ -94,9 +96,8 @@ func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, erro
 		return "", err
 	}
 	// Example: major: "1", minor: "12" -> "kubectl.1.12"
-	// TODO(seans): Should be %d for major/minor.
-	kubectlFilename := fmt.Sprintf("%s.%s.%s", kubectlBinaryName, major, minor)
-	if c.dirGetter.GetOS() == "windows" {
+	kubectlFilename := fmt.Sprintf("%s.%d.%d", kubectlBinaryName, major, minor)
+	if c.dirGetter.GetOS() == windowsOS {
 		kubectlFilename += ".exe"
 	}
 	currentDir, err := c.dirGetter.CurrentDirectory()
