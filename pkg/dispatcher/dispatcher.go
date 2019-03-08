@@ -147,6 +147,9 @@ func (d *Dispatcher) Dispatch() error {
 // otherwise, log statements will not work.
 func Execute(clientVersion *version.Info) {
 	klog.Info("Starting dispatcher")
+	if clientVersion == nil {
+		clientVersion = &version.Info{}
+	}
 	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
 	dispatcher := NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
 	if err := dispatcher.Dispatch(); err != nil {
