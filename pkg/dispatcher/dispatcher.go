@@ -18,6 +18,7 @@ package dispatcher
 
 import (
 	"fmt"
+	"os"
 	"syscall"
 
 	"github.com/kubectl-dispatcher/pkg/client"
@@ -137,4 +138,19 @@ func (d *Dispatcher) Dispatch() error {
 	// (by calling execve(2) system call), and it does not return on success.
 	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
+}
+
+// Execute is the entry point to the dispatcher. It passes in the current client
+// version, which is used to determine if a delegation is necessary. If this function
+// successfully delegates, then it will NOT return, since the current process will be
+// overwritten (see execve(2)). If this function does not delegate, it merely falls
+// through. This function assumes logging has been initialized before it is run;
+// otherwise, log statements will not work.
+func Execute(clientVersion *version.Info) {
+	klog.Info("Starting dispatcher")
+	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
+	dispatcher := NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
+	if err := dispatcher.Dispatch(); err != nil {
+		klog.Warningf("Dispatch error: %v", err)
+	}
 }

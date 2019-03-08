@@ -57,14 +57,10 @@ func main() {
 	defer klog.Flush()
 
 	// Dispatch() does not return if successful; the current process is overwritten.
-	klog.Info("Starting dispatcher")
-	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
-	dispatcher := dispatcher.NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
-	if err := dispatcher.Dispatch(); err != nil {
-		klog.Warningf("Dispatch error: %v", err)
-	}
+	dispatcher.Execute(clientVersion)
 
 	// Dispatch to the default kubectl binary given by clientVersion.
+	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
 	kubectlDefaultFilepath, err := filepathBuilder.VersionedFilePath(clientVersion)
 	if err != nil {
 		klog.Errorf("Error creating default kubectl: (%v)", err)
