@@ -31,7 +31,7 @@ import (
 )
 
 // Hard-coded default client version.
-var clientVersion = &version.Info{
+var clientVersion = version.Info{
 	Major:      "1",
 	Minor:      "11",
 	GitVersion: "v1.11.7",

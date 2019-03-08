@@ -56,35 +56,31 @@ func CopyStrSlice(s []string) []string {
 // for the passed version infos v1 and v2. Examples:
 //   1.11.7 == 1.11.9
 //   1.11.7 != 1.10.7
-func VersionMatch(v1 *version.Info, v2 *version.Info) bool {
-	if v1 != nil && v2 != nil {
-		major1, err := GetMajorVersion(v1)
-		if err != nil {
-			return false
-		}
-		major2, err := GetMajorVersion(v2)
-		if err != nil {
-			return false
-		}
-		minor1, err := GetMinorVersion(v1)
-		if err != nil {
-			return false
-		}
-		minor2, err := GetMinorVersion(v2)
-		if err != nil {
-			return false
-		}
-		if major1 == major2 && minor1 == minor2 {
-			return true
-		}
+func VersionMatch(v1 version.Info, v2 version.Info) bool {
+	major1, err := GetMajorVersion(v1)
+	if err != nil {
+		return false
 	}
+	major2, err := GetMajorVersion(v2)
+	if err != nil {
+		return false
+	}
+	minor1, err := GetMinorVersion(v1)
+	if err != nil {
+		return false
+	}
+	minor2, err := GetMinorVersion(v2)
+	if err != nil {
+		return false
+	}
+	if major1 == major2 && minor1 == minor2 {
+		return true
+	}
+
 	return false
 }
 
-func GetMajorVersion(serverVersion *version.Info) (int, error) {
-	if serverVersion == nil {
-		return -1, fmt.Errorf("server version is nil")
-	}
+func GetMajorVersion(serverVersion version.Info) (int, error) {
 	majorStr, err := normalizeVersionStr(serverVersion.Major)
 	if err != nil {
 		return -1, err
@@ -96,10 +92,7 @@ func GetMajorVersion(serverVersion *version.Info) (int, error) {
 	return major, nil
 }
 
-func GetMinorVersion(serverVersion *version.Info) (int, error) {
-	if serverVersion == nil {
-		return -1, fmt.Errorf("server version is nil")
-	}
+func GetMinorVersion(serverVersion version.Info) (int, error) {
 	minorStr, err := normalizeVersionStr(serverVersion.Minor)
 	if err != nil {
 		return -1, err

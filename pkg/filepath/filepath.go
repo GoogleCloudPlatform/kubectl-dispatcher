@@ -78,13 +78,10 @@ const kubectlBinaryName = "kubectl"
 
 // VersionedFilePath returns the full absolute file path to the versioned kubectl
 // binary to dispatch to. On error, empty string is returned.
-func (c *FilepathBuilder) VersionedFilePath(version *version.Info) (string, error) {
+func (c *FilepathBuilder) VersionedFilePath(version version.Info) (string, error) {
 	// Initial parameter validation.
 	if c.dirGetter == nil {
 		return "", fmt.Errorf("VersionedFilePath: directory getter is nil")
-	}
-	if c.dirGetter == nil {
-		return "", fmt.Errorf("VersionedFilePath: version is nil")
 	}
 	// Get the major and minor versions.
 	major, err := util.GetMajorVersion(version)

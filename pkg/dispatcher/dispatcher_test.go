@@ -23,7 +23,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-var clientVersion = &version.Info{
+var clientVersion = version.Info{
 	Major:      "1",
 	Minor:      "11",
 	GitVersion: "v1.11.7",
@@ -131,7 +131,7 @@ func TestInitKubeConfigFlags(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, nil, nil)
+		dispatcher := NewDispatcher(argsListFromMap(test.args), []string{}, clientVersion, nil)
 		expected := createConfigFlags(test.args)
 		actual, err := dispatcher.InitKubeConfigFlags()
 		if err != nil {

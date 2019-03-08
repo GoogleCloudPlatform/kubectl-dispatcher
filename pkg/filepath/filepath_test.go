@@ -38,8 +38,8 @@ func (f FakeDirGetter) GetOS() string {
 	return f.os
 }
 
-func createServerVersion(major string, minor string) *version.Info {
-	return &version.Info{
+func createServerVersion(major string, minor string) version.Info {
+	return version.Info{
 		Major:      major,
 		Minor:      minor,
 		GitVersion: "SHOULD BE UNUSED",
@@ -48,7 +48,7 @@ func createServerVersion(major string, minor string) *version.Info {
 
 func TestVersionedFilepath(t *testing.T) {
 	tests := []struct {
-		version     *version.Info
+		version     version.Info
 		dirGetter   DirectoryGetter
 		filePath    string
 		expectError bool
@@ -112,13 +112,6 @@ func TestVersionedFilepath(t *testing.T) {
 			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
 			filePath:    "/foo/bar/kubectl.1.12",
 			expectError: false,
-		},
-		// Nil server version causes error
-		{
-			version:     nil,
-			dirGetter:   FakeDirGetter{os: "linux", dir: "/foo/bar", err: nil},
-			filePath:    "",
-			expectError: true,
 		},
 		// Non-digit major version not allowed
 		{

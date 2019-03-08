@@ -39,13 +39,13 @@ const cacheMaxAge = 2 * 60 * 60 // 2 hours in seconds
 type Dispatcher struct {
 	args            []string
 	env             []string
-	clientVersion   *version.Info
+	clientVersion   version.Info
 	filepathBuilder *filepath.FilepathBuilder
 }
 
 // NewDispatcher returns a new pointer to a Dispatcher struct.
 func NewDispatcher(args []string, env []string,
-	clientVersion *version.Info,
+	clientVersion version.Info,
 	filepathBuilder *filepath.FilepathBuilder) *Dispatcher {
 
 	return &Dispatcher{
@@ -66,7 +66,7 @@ func (d *Dispatcher) GetEnv() []string {
 	return util.CopyStrSlice(d.env)
 }
 
-func (d *Dispatcher) GetClientVersion() *version.Info {
+func (d *Dispatcher) GetClientVersion() version.Info {
 	return d.clientVersion
 }
 
@@ -119,13 +119,13 @@ func (d *Dispatcher) Dispatch() error {
 	}
 	klog.Infof("Server Version: %s", serverVersion.GitVersion)
 	klog.Infof("Client Version: %s", d.GetClientVersion().GitVersion)
-	if util.VersionMatch(d.GetClientVersion(), serverVersion) {
+	if util.VersionMatch(d.GetClientVersion(), *serverVersion) {
 		// TODO(seans): Consider changing to return a bool as well as error, since
 		// this isn't really an error.
 		return fmt.Errorf("Client/Server version match--fall through to default")
 	}
 
-	kubectlFilepath, err := d.filepathBuilder.VersionedFilePath(serverVersion)
+	kubectlFilepath, err := d.filepathBuilder.VersionedFilePath(*serverVersion)
 	if err != nil {
 		return err
 	}
@@ -145,11 +145,8 @@ func (d *Dispatcher) Dispatch() error {
 // overwritten (see execve(2)). If this function does not delegate, it merely falls
 // through. This function assumes logging has been initialized before it is run;
 // otherwise, log statements will not work.
-func Execute(clientVersion *version.Info) {
+func Execute(clientVersion version.Info) {
 	klog.Info("Starting dispatcher")
-	if clientVersion == nil {
-		clientVersion = &version.Info{}
-	}
 	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
 	dispatcher := NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
 	if err := dispatcher.Dispatch(); err != nil {
