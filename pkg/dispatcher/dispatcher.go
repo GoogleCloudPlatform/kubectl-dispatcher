@@ -33,7 +33,6 @@ import (
 	"k8s.io/klog"
 )
 
-// TODO(seans): Turn these into dispatcher-specific flags
 const requestTimeout = "5s"     // Timeout for server version query
 const cacheMaxAge = 2 * 60 * 60 // 2 hours in seconds
 
