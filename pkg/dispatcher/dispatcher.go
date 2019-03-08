@@ -34,8 +34,8 @@ import (
 )
 
 // TODO(seans): Turn these into dispatcher-specific flags
-const requestTimeout = "5s" // Timeout for server version query
-const cacheMaxAge = 60 * 60 // 1 hour in seconds
+const requestTimeout = "5s"     // Timeout for server version query
+const cacheMaxAge = 2 * 60 * 60 // 2 hours in seconds
 
 type Dispatcher struct {
 	args            []string
