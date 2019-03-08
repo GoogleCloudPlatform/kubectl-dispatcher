@@ -23,18 +23,22 @@ import (
 
 	"github.com/kubectl-dispatcher/pkg/client"
 	"github.com/kubectl-dispatcher/pkg/filepath"
-	"github.com/kubectl-dispatcher/pkg/logging"
 	"github.com/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/version"
+	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	// klog calls in this file assume it has been initialized beforehand
 	"k8s.io/klog"
 )
 
-const requestTimeout = "5s"     // Timeout for server version query
-const cacheMaxAge = 2 * 60 * 60 // 2 hours in seconds
+const (
+	requestTimeout = "5s"        // Timeout for server version query
+	cacheMaxAge    = 2 * 60 * 60 // 2 hours in seconds
+)
+
+var HelpFlags = []string{"-h", "--help"}
 
 type Dispatcher struct {
 	args            []string
@@ -78,7 +82,10 @@ const kubeConfigFlagSetName = "dispatcher-kube-config"
 // match the set used in the regular kubectl binary.
 func (d *Dispatcher) InitKubeConfigFlags() (*genericclioptions.ConfigFlags, error) {
 
-	kubeConfigFlagSet := logging.NewFlagSet(kubeConfigFlagSetName)
+	// IMPORTANT: If there is an error parsing flags--continue.
+	kubeConfigFlagSet := pflag.NewFlagSet("dispatcher-kube-config", pflag.ContinueOnError)
+	kubeConfigFlagSet.ParseErrorsWhitelist.UnknownFlags = true
+	kubeConfigFlagSet.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 
 	unusedParameter := true // Could be either true or false
 	kubeConfigFlags := genericclioptions.NewConfigFlags(unusedParameter)
@@ -86,7 +93,7 @@ func (d *Dispatcher) InitKubeConfigFlags() (*genericclioptions.ConfigFlags, erro
 
 	// Remove help flags, since these are special-cased in pflag.Parse,
 	// and handled in the dispatcher instead of passed to versioned binary.
-	args := util.FilterList(d.GetArgs(), logging.HelpFlags)
+	args := util.FilterList(d.GetArgs(), HelpFlags)
 	if err := kubeConfigFlagSet.Parse(args[1:]); err != nil {
 		return nil, err
 	}
