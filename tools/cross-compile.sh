@@ -17,9 +17,15 @@ VERSION="1.11.7"
 DATE_TIME=$(date +%Y-%m-%d-%T)
 SECONDS_EPOCH=$(date +'%s')
 
+OSES=("linux" "darwin" "windows")
+ARCHES=("amd64" "386")
+
+WINDOWS_SUFFIX=".exe"
+
 BASE_SOURCE_DIR="_output/dockerized/bin"
 DEST_BUCKET="gs://kubectl-dispatcher"
 DEST_DIR=${DEST_BUCKET}/v${VERSION}/${SECONDS_EPOCH}
+DEST_RELEASE=${DEST_BUCKET}/v${VERSION}/release
 
 echo "Building kubectl dispatcher for version: $VERSION"
 echo "Date/Time: $DATE_TIME"
@@ -35,113 +41,30 @@ build/run.sh make test-cmd
 echo
 echo
 
-# Compile the linux variants
-OS="linux"
-ARCH="amd64"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
-ARCH="386"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
-
-# Compile the MacOS variants
-OS="darwin"
-ARCH="amd64"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
-ARCH="386"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
-# Compile the Windows variants
-OS="windows"
-ARCH="amd64"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl.exe"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
-
-ARCH="386"
-echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-echo
-build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-echo
-echo
-ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
-SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-SOURCE_BIN="${SOURCE_DIR}/kubectl.exe"
-SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
-DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
-echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-tar cvzf $SOURCE_TAR $SOURCE_BIN
-gsutil cp $SOURCE_TAR $DEST_TAR
-echo
-echo
-
+for OS in ${OSES[*]}
+do
+  for ARCH in ${ARCHES[*]}
+  do
+    echo "Building kubectl dispatcher: ${OS}/${ARCH}"
+    echo
+    build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
+    echo
+    echo
+    ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
+    SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
+    SOURCE_BIN="${SOURCE_DIR}/kubectl"
+    # In windows, kubectl binary is named "kubectl.exe"
+    if [ $OS = "windows" ]; then
+      SOURCE_BIN="${SOURCE_BIN}${WINDOWS_SUFFIX}"
+    fi
+    SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
+    DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
+    RELEASE_TAR="${DEST_RELEASE}/${ARCHIVE_FILE}"
+    echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
+    tar cvzf $SOURCE_TAR $SOURCE_BIN
+    gsutil cp $SOURCE_TAR $DEST_TAR
+    gsutil cp $SOURCE_TAR $RELEASE_TAR
+    echo
+    echo
+  done
+done
