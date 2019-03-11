@@ -8,9 +8,10 @@
 #############################################################
 
 set -e
+set -x
 
 # Validate that the kubectl binary exists
-KUBECTL_BIN=${HOME}/go/src/k8s.io/kubernetes/_output/local/bin/linux/amd64/kubectl
+KUBECTL_BIN=${HOME}/go/src/k8s.io/kubernetes/_output/dockerized/bin/linux/amd64/kubectl
 if [ ! -f $KUBECTL_BIN ]; then
     echo "ERROR: kubectl dispatch binary not found--exiting"
     exit 1
@@ -22,9 +23,7 @@ BRANCH_1_11="1.11"
 BRANCH_1_12="1.12"
 BRANCH_1_13="1.13"
 
-BRANCHES=($BRANCH_1_9 $BRANCH_1_10 $BRANCH_1_11 $BRANCH_1_12 $BRANCH_1_13)
-
-# Create the temporary directory for the binaries and logs of our test.
+# Create the temporary directory for the binaries and logs of our tests.
 DATE_TIME=$(date +%Y-%m-%d-%T)
 CURRENT_DIR=$(pwd)
 TMPDIR=$(mktemp -d --tmpdir=$CURRENT_DIR "$DATE_TIME-XXXXXXXX")
@@ -76,6 +75,9 @@ chmod +x kubectl
 mv kubectl ${BIN_DIR}/kubectl.${SHORT_VERSION}
 
 
+BRANCHES=($BRANCH_1_9 $BRANCH_1_10 $BRANCH_1_11 $BRANCH_1_12 $BRANCH_1_13)
+
+
 echo "${DATE_TIME}: End-to-End Tests for kubectl dispatcher"
 echo
 for BRANCH in ${BRANCHES[*]}
@@ -87,8 +89,13 @@ do
   echo
   DATE_TIME=$(date +%Y-%m-%d-%T)
   echo "${DATE_TIME}: kubetest --extract=release/stable-${BRANCH} --up --test --down --test_args=\"--kubectl-path=${KUBECTL_TEST} --ginkgo.focus=\[sig\-cli\]\""
-  # kubetest --extract=release/stable-${BRANCH} --up --test --down --test_args="--kubectl-path=${KUBECTL_BIN} --ginkgo.focus=\[sig\-cli\]"
+  kubetest --extract=release/stable-${BRANCH} --up --test --down --test_args="--kubectl-path=${KUBECTL_BIN} --ginkgo.focus=\[sig\-cli\]"
 done
+
+echo "Clean up..."
+rm -rf _artifacts
+rm -rf kubernetes
+rm -f kubernetes.tar.gz
 
 echo
 echo
