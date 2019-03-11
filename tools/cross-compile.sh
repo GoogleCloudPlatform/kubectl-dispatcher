@@ -14,6 +14,7 @@ set -e
 set -x
 
 VERSION="1.11.7"
+DISPATCHER_VERSION="1.0"
 DATE_TIME=$(date +%Y-%m-%d-%T)
 SECONDS_EPOCH=$(date +'%s')
 
@@ -31,6 +32,12 @@ echo "Building kubectl dispatcher for version: $VERSION"
 echo "Date/Time: $DATE_TIME"
 echo
 
+# Tag the build
+echo "Tag the kubectl dispatcher build"
+git tag -a v${VERSION}-dispatcher -m "kubectl dispatcher v${DISPATCHER_VERSION} at fork of v${VERSION}"
+echo
+echo
+
 # Clean up first
 echo "Cleaning up: make clean"
 echo
@@ -41,6 +48,8 @@ build/run.sh make test-cmd
 echo
 echo
 
+# For each os/arch combination, we build the kubectl binary, then
+# package it and upload to our GCS bucket.
 for OS in ${OSES[*]}
 do
   for ARCH in ${ARCHES[*]}
