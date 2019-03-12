@@ -32,9 +32,17 @@ echo "Building kubectl dispatcher for version: $VERSION"
 echo "Date/Time: $DATE_TIME"
 echo
 
+# Check if the git status is clean.
+if [ -z "$(git status --porcelain)" ]; then 
+  echo "git status clean--continue"
+else 
+  echo "Uncommitted changes in current directory--exiting"
+  exit 1
+fi
+
 # Tag the build
 echo "Tag the kubectl dispatcher build"
-git tag -a v${VERSION}-dispatcher -m "kubectl dispatcher v${DISPATCHER_VERSION} at fork of v${VERSION}"
+git tag -a "v${VERSION}-dispatcher" -m "kubectl dispatcher v${DISPATCHER_VERSION} at fork of v${VERSION}"
 echo
 echo
 
