@@ -23,7 +23,7 @@ the dispatcher.
 
 IMPORTANT: Versioned kubectl binaries that are dispatched to, MUST be in
 the same directory as the dispatcher. Versioned kubectl binaries MUST follow
-the naming convention: kubectl.<major>.<minor>. Example: kubectl.1.12.
+the naming convention: kubectl.\<major\>.\<minor\>. Example: kubectl.1.12.
 
 NOTE: versioned kubectl filenames must NOT start with "kubectl-", since
 that is reserved for plugins. Therefore, we prefix versioned kubectl
