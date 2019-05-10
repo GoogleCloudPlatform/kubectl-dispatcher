@@ -21,9 +21,9 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/kubectl-dispatcher/pkg/dispatcher"
-	"github.com/kubectl-dispatcher/pkg/filepath"
-	"github.com/kubectl-dispatcher/pkg/util"
+	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/dispatcher"
+	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/filepath"
+	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/version"
 	utilflag "k8s.io/apiserver/pkg/util/flag"

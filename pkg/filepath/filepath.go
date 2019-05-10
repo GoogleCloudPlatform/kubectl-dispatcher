@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/kubectl-dispatcher/pkg/util"
+	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/util"
 	"k8s.io/apimachinery/pkg/version"
 )
 
