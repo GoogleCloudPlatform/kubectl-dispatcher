@@ -26,7 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/version"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 
 	// Import to initialize client auth plugins.

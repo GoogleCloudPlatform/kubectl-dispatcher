@@ -26,8 +26,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg/util"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/version"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
 
 	// klog calls in this file assume it has been initialized beforehand
 	"k8s.io/klog"
