@@ -98,7 +98,7 @@ func (d *Dispatcher) InitKubeConfigFlags() (*genericclioptions.ConfigFlags, erro
 		return nil, err
 	}
 	kubeConfigFlagSet.VisitAll(func(flag *pflag.Flag) {
-		klog.Infof("KubeConfig Flag: --%s=%q", flag.Name, flag.Value)
+		klog.V(4).Infof("KubeConfig Flag: --%s=%q", flag.Name, flag.Value)
 	})
 
 	return kubeConfigFlags, nil
@@ -124,8 +124,8 @@ func (d *Dispatcher) Dispatch() error {
 	if err != nil {
 		return err
 	}
-	klog.Infof("Server Version: %s", serverVersion.GitVersion)
-	klog.Infof("Client Version: %s", d.GetClientVersion().GitVersion)
+	klog.V(4).Infof("Server Version: %s", serverVersion.GitVersion)
+	klog.V(4).Infof("Client Version: %s", d.GetClientVersion().GitVersion)
 	if util.VersionMatch(d.GetClientVersion(), *serverVersion) {
 		// TODO(seans): Consider changing to return a bool as well as error, since
 		// this isn't really an error.
@@ -142,7 +142,7 @@ func (d *Dispatcher) Dispatch() error {
 
 	// Delegate to the versioned kubectl binary. This overwrites the current process
 	// (by calling execve(2) system call), and it does not return on success.
-	klog.Infof("kubectl dispatching: %s\n", kubectlFilepath)
+	klog.V(3).Infof("kubectl dispatching: %s\n", kubectlFilepath)
 	return syscall.Exec(kubectlFilepath, d.GetArgs(), d.GetEnv())
 }
 
