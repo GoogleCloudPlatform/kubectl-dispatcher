@@ -153,10 +153,10 @@ func (d *Dispatcher) Dispatch() error {
 // through. This function assumes logging has been initialized before it is run;
 // otherwise, log statements will not work.
 func Execute(clientVersion version.Info) {
-	klog.Info("Starting dispatcher")
+	klog.V(4).Info("Starting dispatcher")
 	filepathBuilder := filepath.NewFilepathBuilder(&filepath.ExeDirGetter{}, os.Stat)
 	dispatcher := NewDispatcher(os.Args, os.Environ(), clientVersion, filepathBuilder)
 	if err := dispatcher.Dispatch(); err != nil {
-		klog.Warningf("Dispatch error: %v", err)
+		klog.V(3).Infof("Dispatch error: %v", err)
 	}
 }
