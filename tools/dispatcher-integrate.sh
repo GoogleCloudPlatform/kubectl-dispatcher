@@ -22,7 +22,7 @@
 #
 ##################################################################
 
-DISPATCHER_ORIGIN=${HOME}/go/src/github.com/kubectl-dispatcher/pkg
+DISPATCHER_ORIGIN=${HOME}/go/src/github.com/GoogleCloudPlatform/kubectl-dispatcher/pkg
 KUBECTL_DESTINATION=${HOME}/go/src/k8s.io/kubernetes/pkg/kubectl/dispatcher
 
 echo "Make sure that you've created a branch"
@@ -35,7 +35,7 @@ cp -R $DISPATCHER_ORIGIN $KUBECTL_DESTINATION
 
 echo "Updating dispatcher code imports"
 
-PREV_DISPATCHER_IMPORT="github.com/kubectl-dispatcher"
+PREV_DISPATCHER_IMPORT="github.com/GoogleCloudPlatform/kubectl-dispatcher"
 NEW_DISPATCHER_IMPORT="k8s.io/kubernetes/pkg/kubectl/dispatcher"
 find $KUBECTL_DESTINATION -name "*.go" | xargs sed -i -e "s|$PREV_DISPATCHER_IMPORT|$NEW_DISPATCHER_IMPORT|g"
 
