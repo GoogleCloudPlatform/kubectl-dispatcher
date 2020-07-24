@@ -26,7 +26,7 @@
 set -e
 set -x
 
-VERSION="1.11.7"
+VERSION="1.15.11"
 DISPATCHER_VERSION="1.0"
 DATE_TIME=$(date +%Y-%m-%d-%T)
 SECONDS_EPOCH=$(date +'%s')
@@ -55,6 +55,7 @@ fi
 
 # Tag the build
 echo "Tag the kubectl dispatcher build"
+output=$( git tag -d "v${VERSION}-dispatcher" 2>&1)
 git tag -a "v${VERSION}-dispatcher" -m "kubectl dispatcher v${DISPATCHER_VERSION} at fork of v${VERSION}"
 echo
 echo
@@ -65,7 +66,7 @@ echo
 build/run.sh make clean
 echo "Cleaning up: make test-cmd"
 echo
-build/run.sh make test-cmd
+# build/run.sh make test-cmd
 echo
 echo
 
@@ -75,23 +76,26 @@ for OS in ${OSES[*]}
 do
   for ARCH in ${ARCHES[*]}
   do
-    echo "Building kubectl dispatcher: ${OS}/${ARCH}"
-    echo
-    build/run.sh make kubectl KUBE_BUILD_PLATFORMS=${OS}/${ARCH}
-    echo
-    echo
-    ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
     SOURCE_DIR="_output/dockerized/bin/${OS}/${ARCH}"
-    SOURCE_BIN="${SOURCE_DIR}/kubectl"
+    SOURCE_BIN="${SOURCE_DIR}/kubectl-sdk"
+    DEST_BIN="${SOURCE_DIR}/kubectl"
     # In windows, kubectl binary is named "kubectl.exe"
     if [ $OS = "windows" ]; then
       SOURCE_BIN="${SOURCE_BIN}${WINDOWS_SUFFIX}"
+      DEST_BIN="${DEST_BIN}${WINDOWS_SUFFIX}"
     fi
+    echo "Building static kubectl dispatcher: ${OS}/${ARCH}"
+    echo
+    build/run.sh make kubectl-sdk KUBE_BUILD_PLATFORMS=${OS}/${ARCH} CGO_ENABLED=0
+    mv ${SOURCE_BIN} ${DEST_BIN}
+    echo
+    echo
+    ARCHIVE_FILE="kubectl-dispatcher-${OS}-${ARCH}.tar.gz"
     SOURCE_TAR="${SOURCE_DIR}/${ARCHIVE_FILE}"
     DEST_TAR="${DEST_DIR}/${ARCHIVE_FILE}"
     RELEASE_TAR="${DEST_RELEASE}/${ARCHIVE_FILE}"
     echo "Copying kubectl-dispatcher to Google Cloud Storage: $DEST_TAR"
-    tar cvzf $SOURCE_TAR $SOURCE_BIN
+    tar cvzf $SOURCE_TAR $DEST_BIN
     gsutil cp $SOURCE_TAR $DEST_TAR
     gsutil cp $SOURCE_TAR $RELEASE_TAR
     echo
