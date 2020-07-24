@@ -55,7 +55,9 @@ fi
 
 # Tag the build
 echo "Tag the kubectl dispatcher build"
-output=$( git tag -d "v${VERSION}-dispatcher" 2>&1)
+set +e
+git tag -d "v${VERSION}-dispatcher" 2>&1
+set -e
 git tag -a "v${VERSION}-dispatcher" -m "kubectl dispatcher v${DISPATCHER_VERSION} at fork of v${VERSION}"
 echo
 echo
