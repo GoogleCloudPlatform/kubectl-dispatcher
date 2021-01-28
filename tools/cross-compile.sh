@@ -26,7 +26,7 @@
 set -e
 set -x
 
-VERSION="1.17.14"
+VERSION="1.17.17"
 DISPATCHER_VERSION="1.0"
 DATE_TIME=$(date +%Y-%m-%d-%T)
 SECONDS_EPOCH=$(date +'%s')
